@@ -132,6 +132,74 @@
     return null;
   }
 
+  function countDocPages(arrayBuffer) {
+    // Parse OLE2 compound document to find page count in SummaryInformation stream
+    try {
+      var dv = new DataView(arrayBuffer);
+      if (dv.getUint32(0, true) !== 0xE011CFD0) return null; // not OLE2
+
+      var sectorSize = 1 << dv.getUint16(30, true);
+      var firstDirSector = dv.getInt32(48, true);
+
+      // Read FAT sector IDs from header (up to 109)
+      var fat = [];
+      for (var i = 0; i < 109; i++) {
+        var sid = dv.getInt32(76 + i * 4, true);
+        if (sid < 0) break;
+        var off = (sid + 1) * sectorSize;
+        for (var j = 0; j < sectorSize / 4; j++) {
+          fat.push(dv.getInt32(off + j * 4, true));
+        }
+      }
+
+      // Read a chain of sectors into a byte array
+      function readChain(start) {
+        var out = [], sec = start;
+        while (sec >= 0 && sec < fat.length) {
+          var base = (sec + 1) * sectorSize;
+          for (var k = 0; k < sectorSize && base + k < arrayBuffer.byteLength; k++)
+            out.push(dv.getUint8(base + k));
+          sec = fat[sec];
+        }
+        return new DataView(new Uint8Array(out).buffer);
+      }
+
+      // Read directory entries (128 bytes each)
+      var dir = readChain(firstDirSector);
+      var numEntries = dir.byteLength / 128;
+
+      for (var e = 0; e < numEntries; e++) {
+        var eo = e * 128;
+        var nameLen = dir.getUint16(eo + 64, true);
+        if (nameLen < 4) continue;
+        // Check for \x05SummaryInformation (first char is 0x05)
+        if (dir.getUint16(eo, true) !== 5) continue;
+        var name = '';
+        for (var c = 1; c < (nameLen - 2) / 2; c++)
+          name += String.fromCharCode(dir.getUint16(eo + c * 2, true));
+        if (name !== 'SummaryInformation') continue;
+
+        var streamStart = dir.getInt32(eo + 116, true);
+        var s = readChain(streamStart);
+
+        // Property set: header 28 bytes, then FMTID(16)+offset(4) per set
+        var psOffset = s.getUint32(44, true);
+        var nProps = s.getUint32(psOffset + 4, true);
+
+        for (var p = 0; p < nProps; p++) {
+          var pid = s.getUint32(psOffset + 8 + p * 8, true);
+          var pOff = s.getUint32(psOffset + 8 + p * 8 + 4, true);
+          if (pid === 14) { // PIDSI_PAGECOUNT
+            return s.getInt32(psOffset + pOff + 4, true);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Could not parse DOC for page count:', e);
+    }
+    return null;
+  }
+
   async function countDocxPages(arrayBuffer) {
     try {
       var zip = await JSZip.loadAsync(arrayBuffer);
@@ -180,8 +248,8 @@
       reader.onload = async function() { setPages(await countDocxPages(reader.result)); };
       reader.readAsArrayBuffer(file);
     } else if (ext === 'doc') {
-      // .doc (legacy binary) — can't reliably count pages client-side
-      // Leave pages field for manual entry
+      reader.onload = function() { setPages(countDocPages(reader.result)); };
+      reader.readAsArrayBuffer(file);
     } else if (ext === 'txt') {
       reader.onload = function() { setPages(countTxtPages(reader.result)); };
       reader.readAsText(file);
