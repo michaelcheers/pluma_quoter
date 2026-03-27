@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Order Confirmed - Pluma Translations</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="page-wrap">
+  <div class="confirmation">
+    <div class="check-icon">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </div>
+
+    <h1>Thank you for your order!</h1>
+    <p>Your certified translation is being processed.</p>
+
+    <div class="order-summary" id="orderSummary">
+      <h2>Order Summary</h2>
+      <div class="summary-row">
+        <span class="summary-label">Name</span>
+        <span class="summary-value" id="sumName">-</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">Email</span>
+        <span class="summary-value" id="sumEmail">-</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">Pages</span>
+        <span class="summary-value" id="sumPages">-</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">Service</span>
+        <span class="summary-value" id="sumService">-</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">Estimated Delivery</span>
+        <span class="summary-value" id="sumDelivery">-</span>
+      </div>
+      <div class="summary-row summary-total">
+        <span class="summary-label">Total Paid</span>
+        <span class="summary-value" id="sumPrice">-</span>
+      </div>
+    </div>
+
+    <div class="confirmation-note">
+      You will receive a confirmation email shortly with your order details.
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <a href="https://plumatranslations.com" target="_blank">plumatranslations.com</a>
+  </div>
+</div>
+
+<script>
+(function() {
+  // Embed mode
+  if (new URLSearchParams(location.search).get('embed') === 'true') {
+    document.body.classList.add('embed');
+  }
+
+  // Parse order details from URL params
+  const params = new URLSearchParams(location.search);
+
+  function set(id, value) {
+    const el = document.getElementById(id);
+    if (el && value) el.textContent = value;
+  }
+
+  set('sumName', params.get('name'));
+  set('sumEmail', params.get('email'));
+  set('sumPages', params.get('pages'));
+  set('sumDelivery', params.get('delivery'));
+
+  const service = params.get('service');
+  if (service) {
+    set('sumService', service.charAt(0).toUpperCase() + service.slice(1));
+  }
+
+  const price = params.get('price');
+  if (price) {
+    set('sumPrice', '$' + parseFloat(price).toFixed(2));
+  }
+})();
+</script>
+
+</body>
+</html>

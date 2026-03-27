@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quick Quote - Pluma Translations</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="quote-tool">
+
+<div class="page-wrap">
+  <div class="page-header">
+    <h1>Quick Quote Tool</h1>
+    <p>Internal tool — get instant pricing for email replies.</p>
+  </div>
+
+  <div class="form-group">
+    <label for="pages">Number of Pages</label>
+    <input type="number" id="pages" min="1" value="1" autofocus>
+  </div>
+
+  <div class="form-group">
+    <label>Service Type</label>
+    <div class="service-toggle">
+      <div class="service-option" id="standardOption">
+        <input type="radio" name="service" id="serviceStandard" value="standard" checked>
+        <label for="serviceStandard">
+          <span class="service-name">Standard</span>
+          <span class="service-desc">3 business days</span>
+        </label>
+      </div>
+      <div class="service-option" id="expressOption">
+        <input type="radio" name="service" id="serviceExpress" value="express">
+        <label for="serviceExpress">
+          <span class="service-name">Express</span>
+          <span class="service-desc">1 business day</span>
+        </label>
+      </div>
+    </div>
+    <div class="express-warning" id="expressWarning">
+      Express is only available for documents up to 5 pages.
+    </div>
+  </div>
+
+  <div class="quote-display" id="quoteDisplay">
+    <h2>Quote</h2>
+    <div class="quote-row">
+      <span class="quote-label">Total Price</span>
+      <div>
+        <span class="quote-price" id="quotePrice">$75.00</span>
+        <div class="quote-breakdown" id="quoteBreakdown">1 page, Standard</div>
+      </div>
+    </div>
+    <div class="quote-row">
+      <span class="quote-label">Estimated Delivery</span>
+      <span class="quote-delivery" id="quoteDelivery"></span>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <a href="https://plumatranslations.com" target="_blank">plumatranslations.com</a>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function() {
+  if (new URLSearchParams(location.search).get('embed') === 'true') {
+    document.body.classList.add('embed');
+  }
+
+  const pagesInput = document.getElementById('pages');
+  const serviceInputs = document.querySelectorAll('input[name="service"]');
+  const expressOption = document.getElementById('expressOption');
+  const expressRadio = document.getElementById('serviceExpress');
+  const standardRadio = document.getElementById('serviceStandard');
+  const expressWarning = document.getElementById('expressWarning');
+  const priceEl = document.getElementById('quotePrice');
+  const breakdownEl = document.getElementById('quoteBreakdown');
+  const deliveryEl = document.getElementById('quoteDelivery');
+
+  function getService() {
+    return document.querySelector('input[name="service"]:checked').value;
+  }
+
+  function getPages() {
+    return Math.max(1, parseInt(pagesInput.value) || 1);
+  }
+
+  function updateQuote() {
+    const pages = getPages();
+    const service = getService();
+
+    if (!PlumaQuoter.isExpressAvailable(pages)) {
+      expressOption.classList.add('disabled');
+      expressRadio.disabled = true;
+      expressWarning.classList.add('visible');
+      if (service === 'express') {
+        standardRadio.checked = true;
+      }
+    } else {
+      expressOption.classList.remove('disabled');
+      expressRadio.disabled = false;
+      expressWarning.classList.remove('visible');
+    }
+
+    const activeService = getService();
+    const price = PlumaQuoter.calculatePrice(pages, activeService);
+    const delivery = PlumaQuoter.calculateDeliveryDate(activeService);
+
+    priceEl.textContent = PlumaQuoter.formatPrice(price);
+    breakdownEl.textContent = pages + (pages === 1 ? ' page' : ' pages') + ', ' +
+      activeService.charAt(0).toUpperCase() + activeService.slice(1);
+    deliveryEl.textContent = PlumaQuoter.formatDate(delivery);
+  }
+
+  pagesInput.addEventListener('input', updateQuote);
+  serviceInputs.forEach(r => r.addEventListener('change', updateQuote));
+  updateQuote();
+})();
+</script>
+
+</body>
+</html>

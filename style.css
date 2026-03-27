@@ -1,0 +1,481 @@
+/* Pluma Quoter - Styles matching plumatranslations.com */
+
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --accent: #13aff0;
+  --accent-hover: #0b7cac;
+  --heading: #333333;
+  --body-text: #4a4a4a;
+  --secondary-text: #777777;
+  --bg: #ffffff;
+  --bg-alt: #f1f1f1;
+  --border: #dddddd;
+  --border-light: #f1f1f1;
+  --error: #cf2e2e;
+  --success: #16a34a;
+  --font: 'Open Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 14px;
+  line-height: 1.8;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--body-text);
+  background: var(--bg);
+}
+
+/* Embed mode: no extra chrome */
+body.embed {
+  background: transparent;
+}
+
+/* Layout */
+.page-wrap {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+body.embed .page-wrap {
+  padding: 16px;
+}
+
+/* Header */
+.page-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.page-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--heading);
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.page-header p {
+  color: var(--secondary-text);
+  font-size: 14px;
+}
+
+body.embed .page-header {
+  display: none;
+}
+
+/* Form */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--heading);
+  margin-bottom: 6px;
+  letter-spacing: 0.3px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="number"],
+.form-group input[type="file"] {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--heading);
+  background: var(--bg);
+  transition: border-color 0.15s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(19, 175, 240, 0.15);
+}
+
+.form-group input[type="file"] {
+  padding: 10px 14px;
+  height: auto;
+  cursor: pointer;
+}
+
+.form-group input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.form-group input[type="number"]::-webkit-inner-spin-button,
+.form-group input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+/* Service type toggle */
+.service-toggle {
+  display: flex;
+  gap: 12px;
+}
+
+.service-option {
+  flex: 1;
+  position: relative;
+}
+
+.service-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.service-option label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.service-option label:hover {
+  border-color: var(--accent);
+}
+
+.service-option input:checked + label {
+  border-color: var(--accent);
+  background: rgba(19, 175, 240, 0.05);
+}
+
+.service-option .service-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--heading);
+  margin-bottom: 2px;
+}
+
+.service-option .service-desc {
+  font-size: 12px;
+  color: var(--secondary-text);
+}
+
+.service-option.disabled label {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: var(--border);
+  background: var(--bg-alt);
+}
+
+.express-warning {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 3px;
+  font-size: 13px;
+  color: #856404;
+  display: none;
+}
+
+.express-warning.visible {
+  display: block;
+}
+
+/* Quote display */
+.quote-display {
+  background: var(--bg-alt);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 24px;
+  margin: 28px 0;
+}
+
+.quote-display h2 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--secondary-text);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 16px;
+}
+
+.quote-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0;
+}
+
+.quote-row + .quote-row {
+  border-top: 1px solid var(--border-light);
+}
+
+.quote-label {
+  font-size: 14px;
+  color: var(--body-text);
+}
+
+.quote-value {
+  font-weight: 700;
+  color: var(--heading);
+}
+
+.quote-price {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.5px;
+}
+
+.quote-delivery {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--heading);
+}
+
+.quote-breakdown {
+  font-size: 12px;
+  color: var(--secondary-text);
+  margin-top: 4px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  padding: 0 32px;
+  border: none;
+  border-radius: 3px;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  width: 100%;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-primary:disabled {
+  background: var(--border);
+  color: var(--secondary-text);
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #32373c;
+  color: #fff;
+  border: 1px solid #fff;
+}
+
+.btn-secondary:hover {
+  background: #444;
+}
+
+/* PayPal button container */
+#paypal-button-container {
+  margin-top: 16px;
+  min-height: 45px;
+}
+
+#paypal-button-container.hidden {
+  display: none;
+}
+
+/* Loading/status messages */
+.status-message {
+  text-align: center;
+  padding: 12px;
+  border-radius: 3px;
+  font-size: 13px;
+  margin-top: 12px;
+  display: none;
+}
+
+.status-message.error {
+  display: block;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: var(--error);
+}
+
+.status-message.loading {
+  display: block;
+  background: rgba(19, 175, 240, 0.05);
+  border: 1px solid rgba(19, 175, 240, 0.2);
+  color: var(--accent);
+}
+
+/* Confirmation page */
+.confirmation {
+  text-align: center;
+}
+
+.confirmation .check-icon {
+  width: 64px;
+  height: 64px;
+  background: var(--success);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+}
+
+.confirmation .check-icon svg {
+  width: 32px;
+  height: 32px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.confirmation h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--heading);
+  margin-bottom: 12px;
+}
+
+.confirmation p {
+  color: var(--secondary-text);
+  margin-bottom: 24px;
+}
+
+.order-summary {
+  background: var(--bg-alt);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 24px;
+  margin: 24px 0;
+  text-align: left;
+}
+
+.order-summary h2 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--secondary-text);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 16px;
+}
+
+.order-summary .summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.order-summary .summary-label {
+  color: var(--secondary-text);
+}
+
+.order-summary .summary-value {
+  font-weight: 600;
+  color: var(--heading);
+}
+
+.order-summary .summary-total {
+  border-top: 2px solid var(--border);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.order-summary .summary-total .summary-value {
+  font-size: 20px;
+  color: var(--accent);
+}
+
+.confirmation-note {
+  background: rgba(19, 175, 240, 0.05);
+  border: 1px solid rgba(19, 175, 240, 0.15);
+  border-radius: 3px;
+  padding: 14px 18px;
+  font-size: 13px;
+  color: var(--body-text);
+  text-align: center;
+}
+
+/* Internal quote tool */
+.quote-tool {
+  background: var(--bg);
+}
+
+.quote-tool .page-header h1 {
+  font-size: 20px;
+}
+
+.quote-tool .quote-display {
+  background: #fff;
+  border: 2px solid var(--accent);
+}
+
+.quote-tool .quote-price {
+  font-size: 36px;
+}
+
+/* Footer */
+.page-footer {
+  text-align: center;
+  padding: 24px 0 0;
+  font-size: 12px;
+  color: var(--secondary-text);
+}
+
+body.embed .page-footer {
+  display: none;
+}
+
+.page-footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.page-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .page-wrap {
+    padding: 24px 16px;
+  }
+
+  .service-toggle {
+    flex-direction: column;
+  }
+
+  .quote-price {
+    font-size: 24px;
+  }
+}

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Get a Quote - Pluma Translations</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="page-wrap">
+  <div class="page-header">
+    <h1>Get an Instant Quote</h1>
+    <p>Certified translation services — fast, accurate, professional.</p>
+  </div>
+
+  <form id="quoteForm" autocomplete="on">
+    <div class="form-group">
+      <label for="name">Name</label>
+      <input type="text" id="name" name="name" required autocomplete="name" placeholder="Your full name">
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" required autocomplete="email" placeholder="you@example.com">
+    </div>
+
+    <div class="form-group">
+      <label for="file">Upload Document</label>
+      <input type="file" id="file" name="file" accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png">
+    </div>
+
+    <div class="form-group">
+      <label for="pages">Number of Pages</label>
+      <input type="number" id="pages" name="pages" min="1" value="1" required>
+    </div>
+
+    <div class="form-group">
+      <label>Service Type</label>
+      <div class="service-toggle">
+        <div class="service-option" id="standardOption">
+          <input type="radio" name="service" id="serviceStandard" value="standard" checked>
+          <label for="serviceStandard">
+            <span class="service-name">Standard</span>
+            <span class="service-desc">3 business days</span>
+          </label>
+        </div>
+        <div class="service-option" id="expressOption">
+          <input type="radio" name="service" id="serviceExpress" value="express">
+          <label for="serviceExpress">
+            <span class="service-name">Express</span>
+            <span class="service-desc">1 business day</span>
+          </label>
+        </div>
+      </div>
+      <div class="express-warning" id="expressWarning">
+        Express is only available for documents up to 5 pages.
+      </div>
+    </div>
+
+    <div class="quote-display" id="quoteDisplay">
+      <h2>Your Quote</h2>
+      <div class="quote-row">
+        <span class="quote-label">Total Price</span>
+        <div>
+          <span class="quote-price" id="quotePrice">$75.00</span>
+          <div class="quote-breakdown" id="quoteBreakdown">1 page, Standard</div>
+        </div>
+      </div>
+      <div class="quote-row">
+        <span class="quote-label">Estimated Delivery</span>
+        <span class="quote-delivery" id="quoteDelivery"></span>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary" id="payBtn">Pay Now</button>
+    <div id="paypal-button-container" class="hidden"></div>
+    <div class="status-message" id="statusMessage"></div>
+  </form>
+
+  <div class="page-footer">
+    <a href="https://plumatranslations.com" target="_blank">plumatranslations.com</a>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+(function() {
+  // --- Configuration ---
+  // PayPal client ID (placeholder - replace with live value)
+  const PAYPAL_CLIENT_ID = 'PAYPAL_CLIENT_ID_PLACEHOLDER';
+  // Backend endpoint for creating PayPal orders
+  const API_BASE = 'https://supertranslations.org/api/plumaquote';
+
+  // --- Embed mode ---
+  if (new URLSearchParams(location.search).get('embed') === 'true') {
+    document.body.classList.add('embed');
+  }
+
+  // --- Elements ---
+  const form = document.getElementById('quoteForm');
+  const pagesInput = document.getElementById('pages');
+  const serviceInputs = document.querySelectorAll('input[name="service"]');
+  const expressOption = document.getElementById('expressOption');
+  const expressRadio = document.getElementById('serviceExpress');
+  const standardRadio = document.getElementById('serviceStandard');
+  const expressWarning = document.getElementById('expressWarning');
+  const priceEl = document.getElementById('quotePrice');
+  const breakdownEl = document.getElementById('quoteBreakdown');
+  const deliveryEl = document.getElementById('quoteDelivery');
+  const payBtn = document.getElementById('payBtn');
+  const statusEl = document.getElementById('statusMessage');
+  const paypalContainer = document.getElementById('paypal-button-container');
+
+  // --- Quote update ---
+  function getService() {
+    return document.querySelector('input[name="service"]:checked').value;
+  }
+
+  function getPages() {
+    return Math.max(1, parseInt(pagesInput.value) || 1);
+  }
+
+  function updateQuote() {
+    const pages = getPages();
+    const service = getService();
+
+    // Express availability check
+    if (!PlumaQuoter.isExpressAvailable(pages)) {
+      expressOption.classList.add('disabled');
+      expressRadio.disabled = true;
+      expressWarning.classList.add('visible');
+      if (service === 'express') {
+        standardRadio.checked = true;
+      }
+    } else {
+      expressOption.classList.remove('disabled');
+      expressRadio.disabled = false;
+      expressWarning.classList.remove('visible');
+    }
+
+    const activeService = getService();
+    const price = PlumaQuoter.calculatePrice(pages, activeService);
+    const delivery = PlumaQuoter.calculateDeliveryDate(activeService);
+
+    priceEl.textContent = PlumaQuoter.formatPrice(price);
+    breakdownEl.textContent = pages + (pages === 1 ? ' page' : ' pages') + ', ' +
+      activeService.charAt(0).toUpperCase() + activeService.slice(1);
+    deliveryEl.textContent = PlumaQuoter.formatDate(delivery);
+  }
+
+  pagesInput.addEventListener('input', updateQuote);
+  serviceInputs.forEach(r => r.addEventListener('change', updateQuote));
+  updateQuote();
+
+  // --- PayPal SDK loader ---
+  let paypalLoaded = false;
+  let paypalButtons = null;
+
+  function loadPayPalSDK() {
+    return new Promise((resolve, reject) => {
+      if (paypalLoaded) return resolve();
+      const script = document.createElement('script');
+      script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=CAD`;
+      script.onload = () => { paypalLoaded = true; resolve(); };
+      script.onerror = () => reject(new Error('Failed to load PayPal SDK'));
+      document.head.appendChild(script);
+    });
+  }
+
+  function showStatus(msg, type) {
+    statusEl.className = 'status-message ' + type;
+    statusEl.textContent = msg;
+  }
+
+  function clearStatus() {
+    statusEl.className = 'status-message';
+    statusEl.textContent = '';
+  }
+
+  // --- File upload helper ---
+  const fileInput = document.getElementById('file');
+  let uploadedFileUrl = '';
+
+  async function uploadFile() {
+    const file = fileInput.files[0];
+    if (!file) return '';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch(API_BASE + '/upload-file', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: 'Upload failed' }));
+      throw new Error(err.message || 'File upload failed');
+    }
+
+    const data = await res.json();
+    return data.fileUrl || '';
+  }
+
+  // --- Form submission: upload file, then show PayPal buttons ---
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    clearStatus();
+
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const pages = getPages();
+    const service = getService();
+
+    if (!name || !email || !pages) {
+      showStatus('Please fill in all required fields.', 'error');
+      return;
+    }
+
+    payBtn.style.display = 'none';
+
+    // Upload file first (if one was selected)
+    if (fileInput.files.length > 0) {
+      showStatus('Uploading document...', 'loading');
+      try {
+        uploadedFileUrl = await uploadFile();
+      } catch (err) {
+        console.error('Upload error:', err);
+        showStatus('File upload failed. Please try again.', 'error');
+        payBtn.style.display = '';
+        return;
+      }
+    }
+
+    showStatus('Loading payment options...', 'loading');
+
+    try {
+      await loadPayPalSDK();
+      clearStatus();
+      paypalContainer.classList.remove('hidden');
+
+      // Destroy existing buttons if re-submitting
+      if (paypalButtons) {
+        paypalContainer.innerHTML = '';
+      }
+
+      paypalButtons = paypal.Buttons({
+        style: {
+          layout: 'vertical',
+          color: 'blue',
+          shape: 'rect',
+          label: 'pay'
+        },
+
+        createOrder: async function() {
+          const deliveryDate = PlumaQuoter.formatDateISO(PlumaQuoter.calculateDeliveryDate(service));
+          const res = await fetch(API_BASE + '/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, pages, service, deliveryDate })
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ message: 'Server error' }));
+            throw new Error(err.message || 'Failed to create order');
+          }
+          const data = await res.json();
+          return data.orderId;
+        },
+
+        onApprove: async function(data) {
+          showStatus('Processing payment...', 'loading');
+          try {
+            const deliveryDate = PlumaQuoter.formatDateISO(PlumaQuoter.calculateDeliveryDate(service));
+            const res = await fetch(API_BASE + '/capture-order', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                orderId: data.orderID,
+                name, email, pages, service, deliveryDate,
+                fileUrl: uploadedFileUrl
+              })
+            });
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({ message: 'Capture failed' }));
+              throw new Error(err.message || 'Payment capture failed');
+            }
+            const result = await res.json();
+            const delivery = PlumaQuoter.formatDate(PlumaQuoter.calculateDeliveryDate(service));
+            const params = new URLSearchParams({
+              name, email,
+              pages: pages.toString(),
+              service: result.service || service,
+              price: result.price || PlumaQuoter.calculatePrice(pages, service).toFixed(2),
+              delivery,
+              orderId: data.orderID
+            });
+            // Forward embed param if present
+            if (new URLSearchParams(location.search).get('embed') === 'true') {
+              params.set('embed', 'true');
+            }
+            window.location.href = 'confirmation.html?' + params.toString();
+          } catch (err) {
+            console.error('Capture error:', err);
+            showStatus('Payment was approved but capture failed. Please contact support.', 'error');
+          }
+        },
+
+        onError: function(err) {
+          console.error('PayPal error:', err);
+          showStatus('Payment failed. Please try again.', 'error');
+          payBtn.style.display = '';
+          paypalContainer.classList.add('hidden');
+        },
+
+        onCancel: function() {
+          payBtn.style.display = '';
+          paypalContainer.classList.add('hidden');
+        }
+      });
+
+      paypalButtons.render('#paypal-button-container');
+    } catch (err) {
+      console.error(err);
+      showStatus('Could not load payment. Please try again.', 'error');
+      payBtn.style.display = '';
+      paypalContainer.classList.add('hidden');
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
