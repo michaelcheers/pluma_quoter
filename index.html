@@ -112,6 +112,52 @@
   const statusEl = document.getElementById('statusMessage');
   const paypalContainer = document.getElementById('paypal-button-container');
 
+  // --- Auto page count from uploaded file ---
+  const fileInput = document.getElementById('file');
+
+  function countPdfPages(arrayBuffer) {
+    var bytes = new Uint8Array(arrayBuffer);
+    var text = '';
+    for (var i = 0; i < bytes.length; i++) text += String.fromCharCode(bytes[i]);
+
+    // Try /Type /Pages ... /Count N (page tree root)
+    var match = text.match(/\/Type\s*\/Pages[^>]*?\/Count\s+(\d+)/);
+    if (match) return parseInt(match[1]);
+
+    // Fallback: count /Type /Page (not /Pages) entries
+    var pageMatches = text.match(/\/Type\s*\/Page[^s]/g);
+    if (pageMatches) return pageMatches.length;
+
+    return null;
+  }
+
+  fileInput.addEventListener('change', function() {
+    var file = fileInput.files[0];
+    if (!file) return;
+
+    var ext = file.name.split('.').pop().toLowerCase();
+
+    // Images are always 1 page
+    if (['jpg', 'jpeg', 'png'].includes(ext)) {
+      pagesInput.value = 1;
+      updateQuote();
+      return;
+    }
+
+    // PDFs: parse to count pages
+    if (ext === 'pdf') {
+      var reader = new FileReader();
+      reader.onload = function() {
+        var pages = countPdfPages(reader.result);
+        if (pages && pages > 0) {
+          pagesInput.value = pages;
+          updateQuote();
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  });
+
   // --- Quote update ---
   function getService() {
     return document.querySelector('input[name="service"]:checked').value;
@@ -179,7 +225,6 @@
   }
 
   // --- File upload helper ---
-  const fileInput = document.getElementById('file');
   let uploadedFileUrl = '';
 
   async function uploadFile() {
