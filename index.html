@@ -83,6 +83,7 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="app.js"></script>
 <script>
 (function() {
@@ -131,6 +132,33 @@
     return null;
   }
 
+  async function countDocxPages(arrayBuffer) {
+    try {
+      var zip = await JSZip.loadAsync(arrayBuffer);
+      var appXml = await zip.file('docProps/app.xml')?.async('text');
+      if (appXml) {
+        var match = appXml.match(/<Pages>(\d+)<\/Pages>/);
+        if (match) return parseInt(match[1]);
+      }
+    } catch (e) {
+      console.warn('Could not parse DOCX for page count:', e);
+    }
+    return null;
+  }
+
+  function countTxtPages(text) {
+    // Estimate: ~250 words per page
+    var words = text.trim().split(/\s+/).length;
+    return Math.max(1, Math.ceil(words / 250));
+  }
+
+  function setPages(n) {
+    if (n && n > 0) {
+      pagesInput.value = n;
+      updateQuote();
+    }
+  }
+
   fileInput.addEventListener('change', function() {
     var file = fileInput.files[0];
     if (!file) return;
@@ -139,22 +167,24 @@
 
     // Images are always 1 page
     if (['jpg', 'jpeg', 'png'].includes(ext)) {
-      pagesInput.value = 1;
-      updateQuote();
+      setPages(1);
       return;
     }
 
-    // PDFs: parse to count pages
+    var reader = new FileReader();
+
     if (ext === 'pdf') {
-      var reader = new FileReader();
-      reader.onload = function() {
-        var pages = countPdfPages(reader.result);
-        if (pages && pages > 0) {
-          pagesInput.value = pages;
-          updateQuote();
-        }
-      };
+      reader.onload = function() { setPages(countPdfPages(reader.result)); };
       reader.readAsArrayBuffer(file);
+    } else if (ext === 'docx') {
+      reader.onload = async function() { setPages(await countDocxPages(reader.result)); };
+      reader.readAsArrayBuffer(file);
+    } else if (ext === 'doc') {
+      // .doc (legacy binary) — can't reliably count pages client-side
+      // Leave pages field for manual entry
+    } else if (ext === 'txt') {
+      reader.onload = function() { setPages(countTxtPages(reader.result)); };
+      reader.readAsText(file);
     }
   });
 
