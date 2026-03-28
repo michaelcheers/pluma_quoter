@@ -81,15 +81,20 @@ const PlumaQuoter = (() => {
     return result;
   }
 
+  // Get current date/time in Vancouver timezone
+  function vancouverNow() {
+    var s = new Date().toLocaleString('en-US', { timeZone: 'America/Vancouver' });
+    return new Date(s);
+  }
+
   function calculateDeliveryDate(serviceType, fromDate) {
-    const now = fromDate || new Date();
+    const now = fromDate || vancouverNow();
     const rate = RATES[serviceType] || RATES.standard;
 
-    // If past cutoff, start from next business day
+    // If past cutoff (5 PM Vancouver time), start from next business day
     let start = new Date(now);
     if (now.getHours() >= CUTOFF_HOUR) {
       start = addBusinessDays(start, 1);
-      // Reset to start of that day for clean calculation
       start.setHours(0, 0, 0, 0);
     }
 
