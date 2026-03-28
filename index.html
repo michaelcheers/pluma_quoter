@@ -85,6 +85,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.12.0/mammoth.browser.min.js"></script>
 <script src="app.js"></script>
 <script>
 (function() {
@@ -125,63 +126,55 @@
     manualPagesLink.style.display = 'none';
   });
 
-  function countPdfPages(arrayBuffer) {
+  async function countPdfPages(arrayBuffer) {
     var bytes = new Uint8Array(arrayBuffer);
     var text = '';
     for (var i = 0; i < bytes.length; i++) text += String.fromCharCode(bytes[i]);
 
-    // Try /Type /Pages ... /Count N (page tree root)
-    var match = text.match(/\/Type\s*\/Pages[^>]*?\/Count\s+(\d+)/);
-    if (match) return parseInt(match[1]);
+    // Find ALL /Type /Pages ... /Count N — take the max (root node has total)
+    function findMaxCount(str) {
+      var re = /\/Type\s*\/Pages[^>]*?\/Count\s+(\d+)/g;
+      var m, best = 0;
+      while ((m = re.exec(str)) !== null) best = Math.max(best, parseInt(m[1]));
+      return best || null;
+    }
 
-    // Fallback: count /Type /Page (not /Pages) entries
+    var count = findMaxCount(text);
+    if (count) return count;
+
     var pageMatches = text.match(/\/Type\s*\/Page[^s]/g);
     if (pageMatches) return pageMatches.length;
 
-    // PDF 1.5+ may store objects in compressed ObjStm streams.
-    // Decompress all FlateDecode streams and search inside them.
-    try {
-      var streamRegex = /stream\r?\n/g;
-      var ranges = [];
-      var sm;
-      while ((sm = streamRegex.exec(text)) !== null) {
-        var sStart = sm.index + sm[0].length;
-        var sEnd = text.indexOf('endstream', sStart);
-        if (sEnd > sStart) ranges.push([sStart, sEnd]);
+    // PDF 1.5+: page tree may be inside compressed ObjStm streams
+    var streamRegex = /stream\r?\n/g;
+    var ranges = [], sm;
+    while ((sm = streamRegex.exec(text)) !== null) {
+      var sStart = sm.index + sm[0].length;
+      var sEnd = text.indexOf('endstream', sStart);
+      if (sEnd > sStart) {
+        // Trim trailing newline before endstream
+        if (text.charCodeAt(sEnd - 1) === 0x0A) sEnd--;
+        if (sEnd > sStart && text.charCodeAt(sEnd - 1) === 0x0D) sEnd--;
+        ranges.push([sStart, sEnd]);
       }
+    }
 
-      if (ranges.length > 0) {
-        return (async function() {
-          for (var r = 0; r < ranges.length; r++) {
-            try {
-              var compressed = bytes.slice(ranges[r][0], ranges[r][1]);
-              var ds = new DecompressionStream('deflate');
-              var writer = ds.writable.getWriter();
-              var reader = ds.readable.getReader();
-              writer.write(compressed);
-              writer.close();
+    var allDecompressed = '';
+    for (var r = 0; r < ranges.length; r++) {
+      try {
+        var compressed = bytes.slice(ranges[r][0], ranges[r][1]);
+        var blob = new Blob([compressed]);
+        var stream = blob.stream().pipeThrough(new DecompressionStream('deflate'));
+        var buf = new Uint8Array(await new Response(stream).arrayBuffer());
+        for (var j = 0; j < buf.length; j++) allDecompressed += String.fromCharCode(buf[j]);
+      } catch (e) { /* not valid deflate, skip */ }
+    }
 
-              var chunks = [], result;
-              while (!(result = await reader.read()).done) chunks.push(result.value);
-
-              var decoded = '';
-              for (var c = 0; c < chunks.length; c++) {
-                var chunk = chunks[c];
-                for (var j = 0; j < chunk.length; j++) decoded += String.fromCharCode(chunk[j]);
-              }
-
-              var cm = decoded.match(/\/Type\s*\/Pages[^>]*?\/Count\s+(\d+)/);
-              if (cm) return parseInt(cm[1]);
-
-              var pm = decoded.match(/\/Type\s*\/Page[^s]/g);
-              if (pm) return pm.length;
-            } catch (e) { /* not valid deflate, try next */ }
-          }
-          return null;
-        })();
-      }
-    } catch (e) {
-      console.warn('Error decompressing PDF streams:', e);
+    if (allDecompressed) {
+      count = findMaxCount(allDecompressed);
+      if (count) return count;
+      var pm = allDecompressed.match(/\/Type\s*\/Page[^s]/g);
+      if (pm) return pm.length;
     }
 
     return null;
@@ -256,6 +249,7 @@
   }
 
   async function countDocxPages(arrayBuffer) {
+    // Primary: app.xml metadata (set by Word on save)
     try {
       var zip = await JSZip.loadAsync(arrayBuffer);
       var appXml = await zip.file('docProps/app.xml')?.async('text');
@@ -263,9 +257,20 @@
         var match = appXml.match(/<Pages>(\d+)<\/Pages>/);
         if (match) return parseInt(match[1]);
       }
-    } catch (e) {
-      console.warn('Could not parse DOCX for page count:', e);
-    }
+    } catch (e) {}
+
+    // Fallback: render with mammoth.js and measure against page height
+    try {
+      var result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+      var el = document.createElement('div');
+      el.style.cssText = 'position:absolute;left:-9999px;width:624px;font:11pt Calibri,sans-serif;line-height:1.15;padding:0;margin:0;';
+      document.body.appendChild(el);
+      el.innerHTML = result.value;
+      var pages = Math.max(1, Math.ceil(el.scrollHeight / 864));
+      document.body.removeChild(el);
+      return pages;
+    } catch (e) {}
+
     return null;
   }
 

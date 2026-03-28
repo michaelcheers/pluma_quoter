@@ -1,0 +1,10 @@
+{
+  "name": "pluma-quoter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Instant quote and order form for Pluma Translations",
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "mammoth": "^1.12.0"
+  }
+}
