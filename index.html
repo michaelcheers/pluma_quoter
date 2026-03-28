@@ -281,6 +281,12 @@
       pagesInput.disabled = true;
       manualPagesLink.style.display = '';
       updateQuote();
+    } else {
+      // Auto-detection failed — enable for manual entry
+      pagesInput.disabled = false;
+      pagesInput.value = '';
+      pagesInput.focus();
+      manualPagesLink.style.display = 'none';
     }
   }
 
