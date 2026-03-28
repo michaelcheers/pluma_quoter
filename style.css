@@ -125,6 +125,25 @@ body.embed .page-header {
   -webkit-appearance: none;
 }
 
+.form-group input:disabled {
+  background: var(--bg-alt);
+  color: var(--secondary-text);
+  cursor: not-allowed;
+}
+
+.manual-pages-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.manual-pages-link:hover {
+  text-decoration: underline;
+}
+
 /* Service type toggle */
 .service-toggle {
   display: flex;
