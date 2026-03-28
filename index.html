@@ -138,6 +138,52 @@
     var pageMatches = text.match(/\/Type\s*\/Page[^s]/g);
     if (pageMatches) return pageMatches.length;
 
+    // PDF 1.5+ may store objects in compressed ObjStm streams.
+    // Decompress all FlateDecode streams and search inside them.
+    try {
+      var streamRegex = /stream\r?\n/g;
+      var ranges = [];
+      var sm;
+      while ((sm = streamRegex.exec(text)) !== null) {
+        var sStart = sm.index + sm[0].length;
+        var sEnd = text.indexOf('endstream', sStart);
+        if (sEnd > sStart) ranges.push([sStart, sEnd]);
+      }
+
+      if (ranges.length > 0) {
+        return (async function() {
+          for (var r = 0; r < ranges.length; r++) {
+            try {
+              var compressed = bytes.slice(ranges[r][0], ranges[r][1]);
+              var ds = new DecompressionStream('deflate');
+              var writer = ds.writable.getWriter();
+              var reader = ds.readable.getReader();
+              writer.write(compressed);
+              writer.close();
+
+              var chunks = [], result;
+              while (!(result = await reader.read()).done) chunks.push(result.value);
+
+              var decoded = '';
+              for (var c = 0; c < chunks.length; c++) {
+                var chunk = chunks[c];
+                for (var j = 0; j < chunk.length; j++) decoded += String.fromCharCode(chunk[j]);
+              }
+
+              var cm = decoded.match(/\/Type\s*\/Pages[^>]*?\/Count\s+(\d+)/);
+              if (cm) return parseInt(cm[1]);
+
+              var pm = decoded.match(/\/Type\s*\/Page[^s]/g);
+              if (pm) return pm.length;
+            } catch (e) { /* not valid deflate, try next */ }
+          }
+          return null;
+        })();
+      }
+    } catch (e) {
+      console.warn('Error decompressing PDF streams:', e);
+    }
+
     return null;
   }
 
@@ -253,7 +299,7 @@
     var reader = new FileReader();
 
     if (ext === 'pdf') {
-      reader.onload = function() { setPages(countPdfPages(reader.result)); };
+      reader.onload = async function() { setPages(await countPdfPages(reader.result)); };
       reader.readAsArrayBuffer(file);
     } else if (ext === 'docx') {
       reader.onload = async function() { setPages(await countDocxPages(reader.result)); };
