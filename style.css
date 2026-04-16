@@ -91,7 +91,8 @@ body.embed .page-header {
 .form-group input[type="text"],
 .form-group input[type="email"],
 .form-group input[type="number"],
-.form-group input[type="file"] {
+.form-group input[type="file"],
+.form-group select {
   width: 100%;
   height: 44px;
   padding: 0 14px;
@@ -324,8 +325,8 @@ body.embed .page-header {
   min-height: 45px;
 }
 
-#paypal-button-container.hidden {
-  display: none;
+.hidden {
+  display: none !important;
 }
 
 /* Loading/status messages */

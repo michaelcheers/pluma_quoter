@@ -4,18 +4,64 @@
  */
 
 const PlumaQuoter = (() => {
-  const RATES = {
-    standard: { firstPage: 75, additionalPage: 40, businessDays: 3 },
-    express:  { firstPage: 95, additionalPage: 55, businessDays: 1 }
-  };
+  // Tiered pricing: { maxPages, standard: { price, days }, express: { price, days } }
+  // Prices are cumulative totals (not per-page) for each tier boundary
+  const PRICING_TABLE = [
+    { pages: 1,  standard: { price: 75,  days: 3 }, express: { price: 95,  days: 1 } },
+    { pages: 2,  standard: { price: 140, days: 3 }, express: { price: 160, days: 1 } },
+    { pages: 3,  standard: { price: 175, days: 3 }, express: { price: 205, days: 1 } },
+    { pages: 4,  standard: { price: 210, days: 3 }, express: { price: 260, days: 1 } },
+    { pages: 5,  standard: { price: 245, days: 3 }, express: { price: 315, days: 1 } },
+    { pages: 10, standard: { price: 420, days: 5 }, express: { price: 590, days: 2 } },
+    { pages: 15, standard: { price: 595, days: 7 }, express: { price: 865, days: 3 } },
+    { pages: 20, standard: { price: 770, days: 8 }, express: { price: 1140, days: 4 } },
+  ];
 
-  const EXPRESS_MAX_PAGES = 5;
+  const EXPRESS_MAX_PAGES = 20;
   const CUTOFF_HOUR = 17; // 5:00 PM local time
+
+  // Supported in-house language combinations
+  const OUR_COMBOS = new Set(['es-en', 'fr-en', 'de-en', 'it-en', 'en-es']);
+
+  function isOurCombination(langCombo) {
+    return OUR_COMBOS.has(langCombo);
+  }
 
   function calculatePrice(pages, serviceType) {
     pages = Math.max(1, Math.floor(pages) || 1);
-    const rate = RATES[serviceType] || RATES.standard;
-    return rate.firstPage + Math.max(0, pages - 1) * rate.additionalPage;
+    var type = serviceType === 'express' ? 'express' : 'standard';
+
+    // Exact match in table
+    for (var i = 0; i < PRICING_TABLE.length; i++) {
+      if (pages === PRICING_TABLE[i].pages) return PRICING_TABLE[i][type].price;
+    }
+
+    // Interpolate between tiers
+    for (var i = 1; i < PRICING_TABLE.length; i++) {
+      if (pages < PRICING_TABLE[i].pages) {
+        var low = PRICING_TABLE[i - 1];
+        var high = PRICING_TABLE[i];
+        var pagesInTier = pages - low.pages;
+        var tierSpan = high.pages - low.pages;
+        var pricePerPage = (high[type].price - low[type].price) / tierSpan;
+        return Math.round(low[type].price + pagesInTier * pricePerPage);
+      }
+    }
+
+    // Beyond table: extrapolate from last two tiers
+    var last = PRICING_TABLE[PRICING_TABLE.length - 1];
+    var prev = PRICING_TABLE[PRICING_TABLE.length - 2];
+    var perPage = (last[type].price - prev[type].price) / (last.pages - prev.pages);
+    return Math.round(last[type].price + (pages - last.pages) * perPage);
+  }
+
+  function getBusinessDays(pages, serviceType) {
+    pages = Math.max(1, Math.floor(pages) || 1);
+    var type = serviceType === 'express' ? 'express' : 'standard';
+    for (var i = 0; i < PRICING_TABLE.length; i++) {
+      if (pages <= PRICING_TABLE[i].pages) return PRICING_TABLE[i][type].days;
+    }
+    return PRICING_TABLE[PRICING_TABLE.length - 1][type].days;
   }
 
   function formatPrice(amount) {
@@ -87,9 +133,9 @@ const PlumaQuoter = (() => {
     return new Date(s);
   }
 
-  function calculateDeliveryDate(serviceType, fromDate) {
+  function calculateDeliveryDate(serviceType, pages, fromDate) {
     const now = fromDate || vancouverNow();
-    const rate = RATES[serviceType] || RATES.standard;
+    const days = getBusinessDays(pages || 1, serviceType);
 
     // If past cutoff (5 PM Vancouver time), start from next business day
     let start = new Date(now);
@@ -98,7 +144,7 @@ const PlumaQuoter = (() => {
       start.setHours(0, 0, 0, 0);
     }
 
-    return addBusinessDays(start, rate.businessDays);
+    return addBusinessDays(start, days);
   }
 
   function formatDate(date) {
@@ -122,9 +168,12 @@ const PlumaQuoter = (() => {
   }
 
   return {
-    RATES,
+    PRICING_TABLE,
     EXPRESS_MAX_PAGES,
+    OUR_COMBOS,
+    isOurCombination,
     calculatePrice,
+    getBusinessDays,
     formatPrice,
     addBusinessDays,
     calculateDeliveryDate,

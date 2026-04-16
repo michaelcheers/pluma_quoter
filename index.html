@@ -26,6 +26,25 @@
     </div>
 
     <div class="form-group">
+      <label for="langCombo">Language Combination</label>
+      <select id="langCombo" name="langCombo" required>
+        <option value="" disabled selected>Select language pair</option>
+        <optgroup label="To English">
+          <option value="es-en">Spanish → English</option>
+          <option value="fr-en">French → English</option>
+          <option value="de-en">German → English</option>
+          <option value="it-en">Italian → English</option>
+        </optgroup>
+        <optgroup label="To Spanish">
+          <option value="en-es">English → Spanish</option>
+        </optgroup>
+        <optgroup label="Other">
+          <option value="other">Other language pair</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <div class="form-group">
       <label for="file">Upload Document</label>
       <input type="file" id="file" name="file" accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png">
     </div>
@@ -73,7 +92,12 @@
       </div>
     </div>
 
-    <button type="submit" class="btn btn-primary" id="payBtn">Pay Now</button>
+    <div id="otherLangMessage" class="hidden" style="background:#f0f4ff;border:1px solid #b8c9e8;border-radius:8px;padding:16px 20px;margin-bottom:16px;text-align:center;">
+      <p style="margin:0 0 8px;font-weight:600;">We can still help with this language pair!</p>
+      <p style="margin:0;font-size:14px;">We'll review your document and send you a custom quote by email.</p>
+    </div>
+    <button type="submit" class="btn btn-primary hidden" id="payBtn">Pay Now</button>
+    <button type="submit" class="btn btn-primary hidden" id="requestQuoteBtn">Request a Quote</button>
     <div id="paypal-button-container" class="hidden"></div>
     <div class="status-message" id="statusMessage"></div>
   </form>
@@ -101,6 +125,7 @@
 
   // --- Elements ---
   const form = document.getElementById('quoteForm');
+  const langCombo = document.getElementById('langCombo');
   const pagesInput = document.getElementById('pages');
   const serviceInputs = document.querySelectorAll('input[name="service"]');
   const expressOption = document.getElementById('expressOption');
@@ -113,6 +138,9 @@
   const payBtn = document.getElementById('payBtn');
   const statusEl = document.getElementById('statusMessage');
   const paypalContainer = document.getElementById('paypal-button-container');
+  const otherLangMessage = document.getElementById('otherLangMessage');
+  const requestQuoteBtn = document.getElementById('requestQuoteBtn');
+  let isOurCombo = false;
 
   // --- Page count: disabled by default, auto-filled from file ---
   const fileInput = document.getElementById('file');
@@ -312,6 +340,24 @@
     }
   });
 
+  // --- Language combo handler ---
+  langCombo.addEventListener('change', function() {
+    isOurCombo = PlumaQuoter.isOurCombination(langCombo.value);
+    var quoteDisplay = document.getElementById('quoteDisplay');
+    if (isOurCombo) {
+      quoteDisplay.classList.remove('hidden');
+      otherLangMessage.classList.add('hidden');
+      payBtn.classList.remove('hidden');
+      requestQuoteBtn.classList.add('hidden');
+    } else if (langCombo.value === 'other') {
+      quoteDisplay.classList.add('hidden');
+      otherLangMessage.classList.remove('hidden');
+      payBtn.classList.add('hidden');
+      requestQuoteBtn.classList.remove('hidden');
+    }
+    updateQuote();
+  });
+
   // --- Quote update ---
   function getService() {
     return document.querySelector('input[name="service"]:checked').value;
@@ -341,7 +387,7 @@
 
     const activeService = getService();
     const price = PlumaQuoter.calculatePrice(pages, activeService);
-    const delivery = PlumaQuoter.calculateDeliveryDate(activeService);
+    const delivery = PlumaQuoter.calculateDeliveryDate(activeService, pages);
 
     priceEl.textContent = PlumaQuoter.formatPrice(price);
     breakdownEl.textContent = pages + (pages === 1 ? ' page' : ' pages') + ', ' +
@@ -411,9 +457,35 @@
     const email = document.getElementById('email').value.trim();
     const pages = getPages();
     const service = getService();
+    const lang = langCombo.value;
 
-    if (!name || !email || !pages) {
+    if (!name || !email || !pages || !lang) {
       showStatus('Please fill in all required fields.', 'error');
+      return;
+    }
+
+    // "Other" language: send email request instead of payment
+    if (!PlumaQuoter.isOurCombination(lang)) {
+      showStatus('Sending your request...', 'loading');
+      try {
+        var uploadUrl = '';
+        if (fileInput.files.length > 0) {
+          uploadUrl = await uploadFile();
+        }
+        const res = await fetch(API_BASE + '/request-quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, pages, languagePair: lang, fileUrl: uploadUrl })
+        });
+        if (res.ok) {
+          showStatus('Thank you! We\'ll review your document and email you a custom quote shortly.', 'success');
+          requestQuoteBtn.classList.add('hidden');
+        } else {
+          showStatus('Something went wrong. Please email us directly at info@plumatranslations.com', 'error');
+        }
+      } catch (err) {
+        showStatus('Something went wrong. Please email us directly at info@plumatranslations.com', 'error');
+      }
       return;
     }
 
@@ -453,11 +525,11 @@
         },
 
         createOrder: async function() {
-          const deliveryDate = PlumaQuoter.formatDateISO(PlumaQuoter.calculateDeliveryDate(service));
+          const deliveryDate = PlumaQuoter.formatDateISO(PlumaQuoter.calculateDeliveryDate(service, pages));
           const res = await fetch(API_BASE + '/create-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, pages, service, deliveryDate })
+            body: JSON.stringify({ name, email, pages, service, deliveryDate, languagePair: lang })
           });
           if (!res.ok) {
             const err = await res.json().catch(() => ({ message: 'Server error' }));
@@ -470,14 +542,14 @@
         onApprove: async function(data) {
           showStatus('Processing payment...', 'loading');
           try {
-            const deliveryDate = PlumaQuoter.formatDateISO(PlumaQuoter.calculateDeliveryDate(service));
+            const deliveryDate = PlumaQuoter.formatDateISO(PlumaQuoter.calculateDeliveryDate(service, pages));
             const res = await fetch(API_BASE + '/capture-order', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 orderId: data.orderID,
                 name, email, pages, service, deliveryDate,
-                fileUrl: uploadedFileUrl
+                languagePair: lang, fileUrl: uploadedFileUrl
               })
             });
             if (!res.ok) {
@@ -485,7 +557,7 @@
               throw new Error(err.message || 'Payment capture failed');
             }
             const result = await res.json();
-            const delivery = PlumaQuoter.formatDate(PlumaQuoter.calculateDeliveryDate(service));
+            const delivery = PlumaQuoter.formatDate(PlumaQuoter.calculateDeliveryDate(service, pages));
             const params = new URLSearchParams({
               name, email,
               pages: pages.toString(),

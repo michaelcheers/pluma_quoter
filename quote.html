@@ -106,7 +106,7 @@
 
     const activeService = getService();
     const price = PlumaQuoter.calculatePrice(pages, activeService);
-    const delivery = PlumaQuoter.calculateDeliveryDate(activeService);
+    const delivery = PlumaQuoter.calculateDeliveryDate(activeService, pages);
 
     priceEl.textContent = PlumaQuoter.formatPrice(price);
     breakdownEl.textContent = pages + (pages === 1 ? ' page' : ' pages') + ', ' +
