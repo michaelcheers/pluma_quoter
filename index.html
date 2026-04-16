@@ -285,6 +285,19 @@
       el.style.cssText = 'position:absolute;left:-9999px;width:624px;font:11pt Calibri,sans-serif;line-height:1.15;padding:0;margin:0;';
       document.body.appendChild(el);
       el.innerHTML = result.value;
+
+      // Wait for all images to load before measuring height
+      var imgs = el.querySelectorAll('img');
+      if (imgs.length > 0) {
+        await Promise.all(Array.from(imgs).map(function(img) {
+          if (img.complete) return Promise.resolve();
+          return new Promise(function(resolve) {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        }));
+      }
+
       var pages = Math.max(1, Math.ceil(el.scrollHeight / 864));
       document.body.removeChild(el);
       return pages;
