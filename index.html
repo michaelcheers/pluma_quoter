@@ -61,14 +61,14 @@
           <input type="radio" name="service" id="serviceStandard" value="standard" checked>
           <label for="serviceStandard">
             <span class="service-name">Standard</span>
-            <span class="service-desc">3 business days</span>
+            <span class="service-desc" id="standardDesc">3 business days</span>
           </label>
         </div>
         <div class="service-option" id="expressOption">
           <input type="radio" name="service" id="serviceExpress" value="express">
           <label for="serviceExpress">
             <span class="service-name">Express</span>
-            <span class="service-desc">1 business day</span>
+            <span class="service-desc" id="expressDesc">1 business day</span>
           </label>
         </div>
       </div>
@@ -278,27 +278,33 @@
       }
     } catch (e) {}
 
-    // Fallback: render with docx-preview (accurate Word layout) and count section breaks
+    // Fallback: render with docx-preview (accurate Word layout) and count pages
     try {
       var el = document.createElement('div');
       el.style.cssText = 'position:absolute;left:-9999px;';
       document.body.appendChild(el);
       await docx.renderAsync(arrayBuffer, el, null, {
         ignoreLastRenderedPageBreak: false,
+        ignoreHeight: false,
         renderHeaders: false,
         renderFooters: false,
         renderFootnotes: false
       });
-      // docx-preview renders each page as a section with class "docx"
-      // or wraps content in page-like wrappers — count them
+      // docx-preview sets min-height on each section.docx to the page height from the document.
+      // Divide each section's scrollHeight by its page height to get page count.
       var sections = el.querySelectorAll('section.docx');
-      var pages = sections.length;
-      if (pages === 0) {
-        // Fallback: measure rendered height against page height (US Letter content area)
-        pages = Math.max(1, Math.ceil(el.scrollHeight / 1056));
+      var pages = 0;
+      for (var i = 0; i < sections.length; i++) {
+        var sec = sections[i];
+        var pageHeight = parseFloat(sec.style.minHeight);
+        if (pageHeight > 0) {
+          pages += Math.ceil(sec.scrollHeight / pageHeight);
+        } else {
+          pages += 1;
+        }
       }
       document.body.removeChild(el);
-      return pages;
+      return pages || null;
     } catch (e) {
       console.warn('docx-preview fallback failed:', e);
     }
@@ -401,6 +407,12 @@
     const activeService = getService();
     const price = PlumaQuoter.calculatePrice(pages, activeService);
     const delivery = PlumaQuoter.calculateDeliveryDate(activeService, pages);
+
+    // Update service type labels with actual delivery times for current page count
+    var stdDays = PlumaQuoter.getBusinessDays(pages, 'standard');
+    var expDays = PlumaQuoter.getBusinessDays(pages, 'express');
+    document.getElementById('standardDesc').textContent = stdDays + ' business day' + (stdDays > 1 ? 's' : '');
+    document.getElementById('expressDesc').textContent = expDays + ' business day' + (expDays > 1 ? 's' : '');
 
     priceEl.textContent = PlumaQuoter.formatPrice(price);
     breakdownEl.textContent = pages + (pages === 1 ? ' page' : ' pages') + ', ' +
