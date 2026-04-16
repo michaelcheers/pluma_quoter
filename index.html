@@ -109,6 +109,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha256-rMfkFFWoB2W1/Zx+4bgHim0WC7vKRVrq6FTeZclH1Z4=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx-preview@0.3.7/dist/docx-preview.min.js" integrity="sha256-oBGkmQFqJp6wSLhVij7vyUvDNWjvQ0I1lDlI/ySkAAU=" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.es.min.js" integrity="sha256-dhs6hK5qzAh4ArxgZypAks0dWxfICWIdo36ibJIky4M=" crossorigin="anonymous"></script>
 <script src="app.js"></script>
 <script>
 (function() {
@@ -278,35 +279,25 @@
       }
     } catch (e) {}
 
-    // Fallback: render with docx-preview (accurate Word layout) and count pages
+    // Fallback: render with docx-preview, then use jsPDF to paginate and count pages
     try {
       var el = document.createElement('div');
       el.style.cssText = 'position:absolute;left:-9999px;';
       document.body.appendChild(el);
       await docx.renderAsync(arrayBuffer, el, null, {
         ignoreLastRenderedPageBreak: false,
-        ignoreHeight: false,
         renderHeaders: false,
         renderFooters: false,
         renderFootnotes: false
       });
-      // docx-preview sets min-height on each section.docx to the page height from the document.
-      // Divide each section's scrollHeight by its page height to get page count.
-      var sections = el.querySelectorAll('section.docx');
-      var pages = 0;
-      for (var i = 0; i < sections.length; i++) {
-        var sec = sections[i];
-        var pageHeight = parseFloat(sec.style.minHeight);
-        if (pageHeight > 0) {
-          pages += Math.ceil(sec.scrollHeight / pageHeight);
-        } else {
-          pages += 1;
-        }
-      }
+      var rendered = el.querySelector('.docx') || el;
+      var pdf = new jspdf.jsPDF('p', 'pt', 'letter');
+      await pdf.html(rendered, { margin: [72, 72, 72, 72], width: 468, windowWidth: rendered.scrollWidth || 624 });
+      var pages = pdf.getNumberOfPages();
       document.body.removeChild(el);
-      return pages || null;
+      return pages;
     } catch (e) {
-      console.warn('docx-preview fallback failed:', e);
+      console.warn('docx-preview + jsPDF fallback failed:', e);
     }
 
     return null;
