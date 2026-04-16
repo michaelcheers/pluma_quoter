@@ -302,8 +302,8 @@
         }));
       }
 
-      // Content height / page content height (9 inches at 96dpi)
-      var pages = Math.max(1, Math.ceil(el.scrollHeight / 864));
+      // Content height / print page height (US Letter = 11in = 1056px at 96dpi)
+      var pages = Math.max(1, Math.ceil(el.scrollHeight / 1056));
       document.body.removeChild(el);
       return pages;
     } catch (e) {
