@@ -107,8 +107,8 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.11.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha256-rMfkFFWoB2W1/Zx+4bgHim0WC7vKRVrq6FTeZclH1Z4=" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx-preview@0.3.7/dist/docx-preview.min.js" integrity="sha256-oBGkmQFqJp6wSLhVij7vyUvDNWjvQ0I1lDlI/ySkAAU=" crossorigin="anonymous"></script>
 <script src="app.js"></script>
 <script>
 (function() {
@@ -278,30 +278,30 @@
       }
     } catch (e) {}
 
-    // Fallback: render with mammoth.js and measure against page height
+    // Fallback: render with docx-preview (accurate Word layout) and count section breaks
     try {
-      var result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
       var el = document.createElement('div');
-      el.style.cssText = 'position:absolute;left:-9999px;width:624px;font:11pt Calibri,sans-serif;line-height:1.15;padding:0;margin:0;';
+      el.style.cssText = 'position:absolute;left:-9999px;';
       document.body.appendChild(el);
-      el.innerHTML = result.value;
-
-      // Wait for all images to load before measuring height
-      var imgs = el.querySelectorAll('img');
-      if (imgs.length > 0) {
-        await Promise.all(Array.from(imgs).map(function(img) {
-          if (img.complete) return Promise.resolve();
-          return new Promise(function(resolve) {
-            img.onload = resolve;
-            img.onerror = resolve;
-          });
-        }));
+      await docx.renderAsync(arrayBuffer, el, null, {
+        ignoreLastRenderedPageBreak: false,
+        renderHeaders: false,
+        renderFooters: false,
+        renderFootnotes: false
+      });
+      // docx-preview renders each page as a section with class "docx"
+      // or wraps content in page-like wrappers — count them
+      var sections = el.querySelectorAll('section.docx');
+      var pages = sections.length;
+      if (pages === 0) {
+        // Fallback: measure rendered height against page height (US Letter content area)
+        pages = Math.max(1, Math.ceil(el.scrollHeight / 1056));
       }
-
-      var pages = Math.max(1, Math.ceil(el.scrollHeight / 864));
       document.body.removeChild(el);
       return pages;
-    } catch (e) {}
+    } catch (e) {
+      console.warn('docx-preview fallback failed:', e);
+    }
 
     return null;
   }
