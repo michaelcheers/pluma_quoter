@@ -109,7 +109,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha256-rMfkFFWoB2W1/Zx+4bgHim0WC7vKRVrq6FTeZclH1Z4=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx-preview@0.3.7/dist/docx-preview.min.js" integrity="sha256-oBGkmQFqJp6wSLhVij7vyUvDNWjvQ0I1lDlI/ySkAAU=" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js" integrity="sha256-5lUfzcMvCdaFOyxRJtGNAdlEfg2mGKQaEevu4PbCDVQ=" crossorigin="anonymous"></script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js" integrity="sha256-5lUfzcMvCdaFOyxRJtGNAdlEfg2mGKQaEevu4PbCDVQ=" crossorigin="anonymous"></script> -->
 <script src="app.js"></script>
 <script>
 (function() {
@@ -279,7 +279,9 @@
       }
     } catch (e) {}
 
-    // Fallback: render with docx-preview, then use jsPDF to paginate and count pages
+    // Fallback: render with docx-preview and measure content height vs page height.
+    // docx-preview renders content at the document's actual page width.
+    // US Letter content area: 9 inches tall (11" - 1" top - 1" bottom) at 96dpi = 864px
     try {
       var el = document.createElement('div');
       el.style.cssText = 'position:absolute;left:-9999px;';
@@ -290,14 +292,22 @@
         renderFooters: false,
         renderFootnotes: false
       });
-      var rendered = el.querySelector('.docx') || el;
-      var pdf = new jspdf.jsPDF('p', 'pt', 'letter');
-      await pdf.html(rendered, { margin: [72, 72, 72, 72], width: 468, windowWidth: rendered.scrollWidth || 624 });
-      var pages = pdf.getNumberOfPages();
+
+      // Wait for images to load
+      var imgs = el.querySelectorAll('img');
+      if (imgs.length > 0) {
+        await Promise.all(Array.from(imgs).map(function(img) {
+          if (img.complete) return Promise.resolve();
+          return new Promise(function(resolve) { img.onload = resolve; img.onerror = resolve; });
+        }));
+      }
+
+      // Content height / page content height (9 inches at 96dpi)
+      var pages = Math.max(1, Math.ceil(el.scrollHeight / 864));
       document.body.removeChild(el);
       return pages;
     } catch (e) {
-      console.warn('docx-preview + jsPDF fallback failed:', e);
+      console.warn('docx-preview fallback failed:', e);
     }
 
     return null;
