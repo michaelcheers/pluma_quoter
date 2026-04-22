@@ -15,46 +15,67 @@
   </div>
 
   <div class="form-group">
+    <label for="serviceSelect">Service Type</label>
+    <select id="serviceSelect"></select>
+  </div>
+
+  <div class="form-group">
     <label for="pages">Number of Pages</label>
     <input type="number" id="pages" min="1" value="1" autofocus>
   </div>
 
   <div class="form-group">
-    <label>Service Type</label>
+    <label>Turnaround</label>
     <div class="service-toggle">
       <div class="service-option" id="standardOption">
-        <input type="radio" name="service" id="serviceStandard" value="standard" checked>
-        <label for="serviceStandard">
+        <input type="radio" name="turnaround" id="turnaroundStandard" value="standard" checked>
+        <label for="turnaroundStandard">
           <span class="service-name">Standard</span>
-          <span class="service-desc">3 business days</span>
+          <span class="service-desc" id="standardDesc">3 business days</span>
         </label>
       </div>
       <div class="service-option" id="expressOption">
-        <input type="radio" name="service" id="serviceExpress" value="express">
-        <label for="serviceExpress">
+        <input type="radio" name="turnaround" id="turnaroundExpress" value="express">
+        <label for="turnaroundExpress">
           <span class="service-name">Express</span>
-          <span class="service-desc">1 business day</span>
+          <span class="service-desc" id="expressDesc">24 business hours</span>
         </label>
       </div>
     </div>
-    <div class="express-warning" id="expressWarning">
-      Express is only available for documents up to 5 pages.
-    </div>
+  </div>
+
+  <div class="form-group checkbox-group">
+    <label class="checkbox-label">
+      <input type="checkbox" id="shippingCheckbox">
+      <span>Include printed copy + Canada Post shipping</span>
+    </label>
   </div>
 
   <div class="quote-display" id="quoteDisplay">
     <h2>Quote</h2>
     <div class="quote-row">
-      <span class="quote-label">Total Price</span>
+      <span class="quote-label">Subtotal</span>
       <div>
-        <span class="quote-price" id="quotePrice">$75.00</span>
+        <span class="quote-price" id="quoteSubtotal">$75.00</span>
         <div class="quote-breakdown" id="quoteBreakdown">1 page, Standard</div>
       </div>
+    </div>
+    <div class="quote-row" id="shippingRow" style="display:none">
+      <span class="quote-label">Shipping</span>
+      <span class="quote-value" id="shippingAmount">$25.00</span>
     </div>
     <div class="quote-row">
       <span class="quote-label">Estimated Delivery</span>
       <span class="quote-delivery" id="quoteDelivery"></span>
     </div>
+    <div class="quote-row quote-total-row">
+      <span class="quote-label"><strong>Total</strong></span>
+      <span class="quote-price" id="quoteTotal">$75.00</span>
+    </div>
+  </div>
+
+  <div class="manual-notice" id="manualNotice" style="display:none">
+    Over <span id="maxInstant">20</span> pages — manual quote required.
   </div>
 
   <div class="page-footer">
@@ -64,59 +85,97 @@
 
 <script src="app.js"></script>
 <script>
-(function() {
+(function () {
   if (new URLSearchParams(location.search).get('embed') === 'true') {
     document.body.classList.add('embed');
   }
 
-  const pagesInput = document.getElementById('pages');
-  const serviceInputs = document.querySelectorAll('input[name="service"]');
-  const expressOption = document.getElementById('expressOption');
-  const expressRadio = document.getElementById('serviceExpress');
-  const standardRadio = document.getElementById('serviceStandard');
-  const expressWarning = document.getElementById('expressWarning');
-  const priceEl = document.getElementById('quotePrice');
-  const breakdownEl = document.getElementById('quoteBreakdown');
-  const deliveryEl = document.getElementById('quoteDelivery');
+  const serviceSelect   = document.getElementById('serviceSelect');
+  const pagesInput      = document.getElementById('pages');
+  const shippingCheck   = document.getElementById('shippingCheckbox');
+  const standardDesc    = document.getElementById('standardDesc');
+  const expressDesc     = document.getElementById('expressDesc');
+  const subtotalEl      = document.getElementById('quoteSubtotal');
+  const totalEl         = document.getElementById('quoteTotal');
+  const breakdownEl     = document.getElementById('quoteBreakdown');
+  const deliveryEl      = document.getElementById('quoteDelivery');
+  const shippingRow     = document.getElementById('shippingRow');
+  const shippingAmount  = document.getElementById('shippingAmount');
+  const quoteDisplay    = document.getElementById('quoteDisplay');
+  const manualNotice    = document.getElementById('manualNotice');
 
-  function getService() {
-    return document.querySelector('input[name="service"]:checked').value;
+  document.getElementById('maxInstant').textContent = PlumaQuoter.MAX_INSTANT_QUOTE_PAGES;
+
+  // Populate service type dropdown
+  PlumaQuoter.SERVICE_TYPES.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.label + (s.requiresManualQuote ? ' (manual quote)' : '');
+    if (s.isDefault) opt.selected = true;
+    serviceSelect.appendChild(opt);
+  });
+
+  function getTurnaround() {
+    return document.querySelector('input[name="turnaround"]:checked').value;
   }
-
   function getPages() {
     return Math.max(1, parseInt(pagesInput.value) || 1);
   }
 
-  function updateQuote() {
+  function update() {
     const pages = getPages();
-    const service = getService();
+    const turnaround = getTurnaround();
+    const serviceId = serviceSelect.value;
+    const service = PlumaQuoter.getServiceType(serviceId);
 
-    if (!PlumaQuoter.isExpressAvailable(pages)) {
-      expressOption.classList.add('disabled');
-      expressRadio.disabled = true;
-      expressWarning.classList.add('visible');
-      if (service === 'express') {
-        standardRadio.checked = true;
-      }
-    } else {
-      expressOption.classList.remove('disabled');
-      expressRadio.disabled = false;
-      expressWarning.classList.remove('visible');
+    const stdDays = PlumaQuoter.getBusinessDays(pages, 'standard');
+    const expDays = PlumaQuoter.getBusinessDays(pages, 'express');
+    standardDesc.textContent = stdDays + ' business day' + (stdDays > 1 ? 's' : '');
+    expressDesc.textContent  = expDays === 1 ? '24 business hours' : expDays + ' business days';
+
+    // Manual-quote conditions relevant to this internal tool:
+    //   * Notarized service
+    //   * >= 21 pages
+    const manualReason =
+      (service && service.requiresManualQuote) ? 'notarized' :
+      (pages > PlumaQuoter.MAX_INSTANT_QUOTE_PAGES) ? 'pages-too-many' :
+      null;
+
+    if (manualReason) {
+      quoteDisplay.style.display = 'none';
+      manualNotice.style.display = '';
+      manualNotice.textContent = PlumaQuoter.manualQuoteReasonText(manualReason);
+      return;
     }
 
-    const activeService = getService();
-    const price = PlumaQuoter.calculatePrice(pages, activeService);
-    const delivery = PlumaQuoter.calculateDeliveryDate(activeService, pages);
+    quoteDisplay.style.display = '';
+    manualNotice.style.display = 'none';
 
-    priceEl.textContent = PlumaQuoter.formatPrice(price);
-    breakdownEl.textContent = pages + (pages === 1 ? ' page' : ' pages') + ', ' +
-      activeService.charAt(0).toUpperCase() + activeService.slice(1);
+    const includeShipping = shippingCheck.checked;
+    const subtotal = PlumaQuoter.calculateSubtotal(pages, turnaround, serviceId);
+    const total    = PlumaQuoter.calculateTotal(pages, turnaround, serviceId, includeShipping);
+    const delivery = PlumaQuoter.calculateDeliveryDate(turnaround, pages);
+
+    subtotalEl.textContent = PlumaQuoter.formatPrice(subtotal);
+    totalEl.textContent    = PlumaQuoter.formatPrice(total);
     deliveryEl.textContent = PlumaQuoter.formatDate(delivery);
+    breakdownEl.textContent =
+      pages + (pages === 1 ? ' page' : ' pages') + ', ' +
+      turnaround.charAt(0).toUpperCase() + turnaround.slice(1) +
+      (service ? ', ' + service.label : '');
+
+    shippingAmount.textContent = PlumaQuoter.formatPrice(PlumaQuoter.SHIPPING_FEE_CAD);
+    shippingRow.style.display = includeShipping ? '' : 'none';
   }
 
-  pagesInput.addEventListener('input', updateQuote);
-  serviceInputs.forEach(r => r.addEventListener('change', updateQuote));
-  updateQuote();
+  pagesInput.addEventListener('input', update);
+  serviceSelect.addEventListener('change', update);
+  shippingCheck.addEventListener('change', update);
+  document.querySelectorAll('input[name="turnaround"]').forEach(r =>
+    r.addEventListener('change', update)
+  );
+
+  update();
 })();
 </script>
 

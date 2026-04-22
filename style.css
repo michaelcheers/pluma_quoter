@@ -485,7 +485,231 @@ body.embed .page-footer {
   text-decoration: underline;
 }
 
-/* Responsive */
+/* --- Two-column form row (from/to, name/email) --- */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-row .form-group {
+  margin-bottom: 20px;
+}
+
+/* --- Service type stack (vertical radios with supporting text) --- */
+.service-type-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.service-type-option {
+  position: relative;
+}
+
+.service-type-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.service-type-option label {
+  display: block;
+  padding: 14px 16px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.service-type-option label:hover {
+  border-color: var(--accent);
+}
+
+.service-type-option input:checked + label {
+  border-color: var(--accent);
+  background: rgba(19, 175, 240, 0.05);
+}
+
+.service-type-option .service-type-name {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--heading);
+  margin-bottom: 4px;
+  letter-spacing: 0;
+}
+
+.service-type-option .service-type-desc {
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--secondary-text);
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+/* --- Checkbox group (shipping) --- */
+.checkbox-group {
+  background: var(--bg-alt);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.checkbox-label {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--heading);
+  cursor: pointer;
+  margin-bottom: 6px !important;
+  letter-spacing: 0 !important;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.checkbox-help {
+  font-size: 13px;
+  color: var(--secondary-text);
+  line-height: 1.5;
+  padding-left: 28px;
+}
+
+/* --- File list (uploaded files + per-file page count) --- */
+.file-list {
+  margin-top: 10px;
+}
+
+.file-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.file-row:last-child {
+  border-bottom: none;
+}
+
+.file-name {
+  color: var(--body-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70%;
+}
+
+.file-pages {
+  color: var(--secondary-text);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.file-pages-error {
+  color: var(--error);
+}
+
+.pages-note {
+  font-size: 12px;
+  color: var(--secondary-text);
+  margin-top: 6px;
+}
+
+/* --- Textarea (manual quote notes) --- */
+.form-group textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--heading);
+  background: var(--bg);
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(19, 175, 240, 0.15);
+}
+
+/* --- Manual-quote block --- */
+.manual-notice {
+  background: rgba(19, 175, 240, 0.06);
+  border: 1px solid rgba(19, 175, 240, 0.25);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: var(--heading);
+  line-height: 1.5;
+}
+
+.manual-recap {
+  background: var(--bg-alt);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.manual-recap-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--secondary-text);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 8px;
+}
+
+.manual-recap-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.manual-recap-row span:first-child {
+  color: var(--secondary-text);
+}
+
+.manual-recap-row span:last-child {
+  color: var(--heading);
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+}
+
+/* --- Quote total row emphasis --- */
+.quote-total-row {
+  border-top: 2px solid var(--border) !important;
+  margin-top: 8px;
+  padding-top: 12px !important;
+}
+
+/* --- Status messages: success variant --- */
+.status-message.success {
+  display: block;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: var(--success);
+}
+
+/* --- Responsive --- */
 @media (max-width: 480px) {
   .page-wrap {
     padding: 24px 16px;
@@ -493,6 +717,11 @@ body.embed .page-footer {
 
   .service-toggle {
     flex-direction: column;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 
   .quote-price {

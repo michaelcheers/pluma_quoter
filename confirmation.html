@@ -28,20 +28,40 @@
         <span class="summary-value" id="sumEmail">-</span>
       </div>
       <div class="summary-row">
+        <span class="summary-label">Service</span>
+        <span class="summary-value" id="sumService">-</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">Language</span>
+        <span class="summary-value" id="sumLanguage">-</span>
+      </div>
+      <div class="summary-row">
         <span class="summary-label">Pages</span>
         <span class="summary-value" id="sumPages">-</span>
       </div>
       <div class="summary-row">
-        <span class="summary-label">Service</span>
-        <span class="summary-value" id="sumService">-</span>
+        <span class="summary-label">Turnaround</span>
+        <span class="summary-value" id="sumTurnaround">-</span>
       </div>
       <div class="summary-row">
         <span class="summary-label">Estimated Delivery</span>
         <span class="summary-value" id="sumDelivery">-</span>
       </div>
+      <div class="summary-row">
+        <span class="summary-label">Printed copy &amp; shipping</span>
+        <span class="summary-value" id="sumShipping">-</span>
+      </div>
+      <div class="summary-row" id="sumSubtotalRow" style="display:none">
+        <span class="summary-label">Subtotal</span>
+        <span class="summary-value" id="sumSubtotal">-</span>
+      </div>
+      <div class="summary-row" id="sumShippingFeeRow" style="display:none">
+        <span class="summary-label">Canada Post shipping</span>
+        <span class="summary-value" id="sumShippingFee">-</span>
+      </div>
       <div class="summary-row summary-total">
         <span class="summary-label">Total Paid</span>
-        <span class="summary-value" id="sumPrice">-</span>
+        <span class="summary-value" id="sumTotal">-</span>
       </div>
     </div>
 
@@ -56,34 +76,74 @@
 </div>
 
 <script>
-(function() {
-  // Embed mode
+(function () {
   if (new URLSearchParams(location.search).get('embed') === 'true') {
     document.body.classList.add('embed');
   }
 
-  // Parse order details from URL params
   const params = new URLSearchParams(location.search);
+  const $ = id => document.getElementById(id);
+  const set = (id, v) => { const el = $(id); if (el && v) el.textContent = v; };
 
-  function set(id, value) {
-    const el = document.getElementById(id);
-    if (el && value) el.textContent = value;
+  const SERVICE_LABELS = {
+    certified:    'Certified Translation',
+    professional: 'Professional Translation',
+    notarized:    'Notarized Translation',
+  };
+  const LANG_LABELS = {
+    en: 'English', es: 'Spanish', de: 'German', it: 'Italian', other: 'Other',
+  };
+
+  function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+  function money(v) {
+    const n = parseFloat(v);
+    return isFinite(n) ? '$' + n.toFixed(2) : '';
   }
 
   set('sumName', params.get('name'));
   set('sumEmail', params.get('email'));
-  set('sumPages', params.get('pages'));
-  set('sumDelivery', params.get('delivery'));
 
   const service = params.get('service');
-  if (service) {
-    set('sumService', service.charAt(0).toUpperCase() + service.slice(1));
+  if (service) set('sumService', SERVICE_LABELS[service] || cap(service));
+
+  const from = params.get('fromLanguage');
+  const to   = params.get('toLanguage');
+  if (from && to) {
+    set('sumLanguage',
+      (LANG_LABELS[from] || cap(from)) + ' → ' + (LANG_LABELS[to] || cap(to)));
   }
 
-  const price = params.get('price');
-  if (price) {
-    set('sumPrice', '$' + parseFloat(price).toFixed(2));
+  set('sumPages', params.get('pages'));
+
+  const turnaround = params.get('turnaround');
+  if (turnaround) set('sumTurnaround', cap(turnaround));
+
+  set('sumDelivery', params.get('delivery'));
+
+  // Shipping status (spec step 9: include whether physical shipping was selected)
+  const shipping = params.get('shipping');
+  if (shipping === 'yes') {
+    set('sumShipping', 'Yes — physical delivery via Canada Post');
+  } else if (shipping === 'no') {
+    set('sumShipping', 'No — electronic only');
   }
+
+  // Subtotal + shipping fee line items (only shown if shipping was selected,
+  // otherwise subtotal == total and showing both is noise)
+  const subtotal    = params.get('subtotal');
+  const shippingFee = params.get('shippingFee');
+  const total       = params.get('total') || params.get('price'); // `price` for back-compat
+
+  if (shipping === 'yes' && subtotal) {
+    $('sumSubtotalRow').style.display = '';
+    set('sumSubtotal', money(subtotal));
+  }
+  if (shipping === 'yes' && shippingFee && parseFloat(shippingFee) > 0) {
+    $('sumShippingFeeRow').style.display = '';
+    set('sumShippingFee', money(shippingFee));
+  }
+
+  if (total) set('sumTotal', money(total));
 })();
 </script>
 

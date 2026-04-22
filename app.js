@@ -1,63 +1,163 @@
 /**
- * Pluma Quoter - Shared pricing and delivery logic
- * Used by index.html (main form) and quote.html (internal tool)
+ * Pluma Quoter - Shared pricing, eligibility and delivery logic.
+ *
+ * Flow (per the spec):
+ *   1. Service type (Certified | Professional | Notarized) — Notarized
+ *      always routes to a manual quote.
+ *   2. Language pair (from / to). Either side = "other" → manual quote.
+ *   3. Document upload → total page count. Unknown or >= 21 → manual quote.
+ *   4. Turnaround (Standard | Express).
+ *   5. Instant quote subtotal.
+ *   6. Optional printed copy + shipping (adds Canada Post fee).
+ *   7. Payment.
+ *
+ * Used by index.html (customer form) and quote.html (internal tool).
  */
-
 const PlumaQuoter = (() => {
-  // Tiered pricing: { maxPages, standard: { price, days }, express: { price, days } }
-  // Prices are cumulative totals (not per-page) for each tier boundary
+  // --- Service types -------------------------------------------------------
+  // `requiresManualQuote` forces the manual-quote path regardless of other
+  // inputs. Pricing for certified vs. professional is currently identical;
+  // if that changes, only `getPriceMultiplier` needs to update.
+  const SERVICE_TYPES = [
+    {
+      id: 'certified',
+      label: 'Certified Translation',
+      description:
+        "A translation prepared and certified by a certified translator, " +
+        "accompanied by a declaration and identifying information confirming " +
+        "the translator's certified status.",
+      requiresManualQuote: false,
+      isDefault: true,
+    },
+    {
+      id: 'professional',
+      label: 'Professional Translation',
+      description:
+        'Standard, regular translation for individual and business use.',
+      requiresManualQuote: false,
+    },
+    {
+      id: 'notarized',
+      label: 'Notarized Translation',
+      description:
+        'The act of a notary witnessing a signature or administering an oath. ' +
+        'Not all documents require notarization, but some, such as apostilles ' +
+        'for countries outside of Canada, do. You can consult our guide for ' +
+        'more details. If you have further questions, please verify with the ' +
+        'institution that requires your documents.',
+      requiresManualQuote: true,
+    },
+  ];
+
+  function getServiceType(id) {
+    return SERVICE_TYPES.find(s => s.id === id) || null;
+  }
+
+  function getDefaultServiceType() {
+    return SERVICE_TYPES.find(s => s.isDefault) || SERVICE_TYPES[0];
+  }
+
+  // --- Languages -----------------------------------------------------------
+  // Spec: From = English / Spanish / German / Italian / Other
+  //       To   = English / Spanish / Other
+  // Either side = 'other' → manual quote.
+  const FROM_LANGUAGES = [
+    { id: 'en', label: 'English' },
+    { id: 'es', label: 'Spanish' },
+    { id: 'de', label: 'German' },
+    { id: 'it', label: 'Italian' },
+    { id: 'other', label: 'Other' },
+  ];
+
+  const TO_LANGUAGES = [
+    { id: 'en', label: 'English' },
+    { id: 'es', label: 'Spanish' },
+    { id: 'other', label: 'Other' },
+  ];
+
+  function languageLabel(list, id) {
+    var l = list.find(x => x.id === id);
+    return l ? l.label : id;
+  }
+
+  function isManualLanguagePair(fromId, toId) {
+    if (!fromId || !toId) return false; // not yet chosen — still neutral
+    if (fromId === 'other' || toId === 'other') return true;
+    if (fromId === toId) return true;   // same-language "translation" — manual review
+    return false;
+  }
+
+  // --- Pricing -------------------------------------------------------------
+  // Cumulative totals (not per-page) at each tier boundary; interpolated
+  // between boundaries. Above 20 pages the flow is manual, so no
+  // extrapolation is normally needed.
   const PRICING_TABLE = [
-    { pages: 1,  standard: { price: 75,  days: 3 }, express: { price: 95,  days: 1 } },
-    { pages: 2,  standard: { price: 140, days: 3 }, express: { price: 160, days: 1 } },
-    { pages: 3,  standard: { price: 175, days: 3 }, express: { price: 205, days: 1 } },
-    { pages: 4,  standard: { price: 210, days: 3 }, express: { price: 260, days: 1 } },
-    { pages: 5,  standard: { price: 245, days: 3 }, express: { price: 315, days: 1 } },
-    { pages: 10, standard: { price: 420, days: 5 }, express: { price: 590, days: 2 } },
-    { pages: 15, standard: { price: 595, days: 7 }, express: { price: 865, days: 3 } },
+    { pages: 1,  standard: { price: 75,  days: 3 }, express: { price: 95,   days: 1 } },
+    { pages: 2,  standard: { price: 140, days: 3 }, express: { price: 160,  days: 1 } },
+    { pages: 3,  standard: { price: 175, days: 3 }, express: { price: 205,  days: 1 } },
+    { pages: 4,  standard: { price: 210, days: 3 }, express: { price: 260,  days: 1 } },
+    { pages: 5,  standard: { price: 245, days: 3 }, express: { price: 315,  days: 1 } },
+    { pages: 10, standard: { price: 420, days: 5 }, express: { price: 590,  days: 2 } },
+    { pages: 15, standard: { price: 595, days: 7 }, express: { price: 865,  days: 3 } },
     { pages: 20, standard: { price: 770, days: 8 }, express: { price: 1140, days: 4 } },
   ];
 
-  const EXPRESS_MAX_PAGES = 20;
-  const CUTOFF_HOUR = 17; // 5:00 PM local time
+  const MAX_INSTANT_QUOTE_PAGES = 20; // >= 21 → manual quote per spec step 4
+  const CUTOFF_HOUR = 17;             // 5 PM America/Vancouver
 
-  // Supported in-house language combinations
-  const OUR_COMBOS = new Set(['es-en', 'fr-en', 'de-en', 'it-en', 'en-es']);
+  // Canada Post shipping fee (domestic tracked, document-size envelope).
+  // TODO: verify against current Canada Post rates; exposed as a single
+  // constant so ops can update it in one place.
+  const SHIPPING_FEE_CAD = 25;
 
-  function isOurCombination(langCombo) {
-    return OUR_COMBOS.has(langCombo);
+  function getPriceMultiplier(serviceId) {
+    // Hook for future per-service pricing. Both currently charge the same.
+    if (serviceId === 'professional') return 1.0;
+    if (serviceId === 'certified')    return 1.0;
+    return 1.0;
   }
 
-  function calculatePrice(pages, serviceType) {
+  function calculateSubtotal(pages, turnaround, serviceId) {
     pages = Math.max(1, Math.floor(pages) || 1);
-    var type = serviceType === 'express' ? 'express' : 'standard';
+    var type = turnaround === 'express' ? 'express' : 'standard';
 
-    // Exact match in table
-    for (var i = 0; i < PRICING_TABLE.length; i++) {
-      if (pages === PRICING_TABLE[i].pages) return PRICING_TABLE[i][type].price;
-    }
+    var base = null;
 
-    // Interpolate between tiers
-    for (var i = 1; i < PRICING_TABLE.length; i++) {
-      if (pages < PRICING_TABLE[i].pages) {
-        var low = PRICING_TABLE[i - 1];
-        var high = PRICING_TABLE[i];
-        var pagesInTier = pages - low.pages;
-        var tierSpan = high.pages - low.pages;
-        var pricePerPage = (high[type].price - low[type].price) / tierSpan;
-        return Math.round(low[type].price + pagesInTier * pricePerPage);
+    // Exact boundary
+    var exact = PRICING_TABLE.find(t => t.pages === pages);
+    if (exact) {
+      base = exact[type].price;
+    } else {
+      // Interpolate between tiers
+      for (var i = 1; i < PRICING_TABLE.length; i++) {
+        if (pages < PRICING_TABLE[i].pages) {
+          var low = PRICING_TABLE[i - 1];
+          var high = PRICING_TABLE[i];
+          var perPage = (high[type].price - low[type].price) / (high.pages - low.pages);
+          base = Math.round(low[type].price + (pages - low.pages) * perPage);
+          break;
+        }
+      }
+      // Defensive fallback (shouldn't be reached — >=21 routes to manual)
+      if (base === null) {
+        var last = PRICING_TABLE[PRICING_TABLE.length - 1];
+        var prev = PRICING_TABLE[PRICING_TABLE.length - 2];
+        var pp = (last[type].price - prev[type].price) / (last.pages - prev.pages);
+        base = Math.round(last[type].price + (pages - last.pages) * pp);
       }
     }
 
-    // Beyond table: extrapolate from last two tiers
-    var last = PRICING_TABLE[PRICING_TABLE.length - 1];
-    var prev = PRICING_TABLE[PRICING_TABLE.length - 2];
-    var perPage = (last[type].price - prev[type].price) / (last.pages - prev.pages);
-    return Math.round(last[type].price + (pages - last.pages) * perPage);
+    return Math.round(base * getPriceMultiplier(serviceId) * 100) / 100;
   }
 
-  function getBusinessDays(pages, serviceType) {
+  function calculateTotal(pages, turnaround, serviceId, includeShipping) {
+    var subtotal = calculateSubtotal(pages, turnaround, serviceId);
+    return includeShipping ? subtotal + SHIPPING_FEE_CAD : subtotal;
+  }
+
+  function getBusinessDays(pages, turnaround) {
     pages = Math.max(1, Math.floor(pages) || 1);
-    var type = serviceType === 'express' ? 'express' : 'standard';
+    var type = turnaround === 'express' ? 'express' : 'standard';
     for (var i = 0; i < PRICING_TABLE.length; i++) {
       if (pages <= PRICING_TABLE[i].pages) return PRICING_TABLE[i][type].days;
     }
@@ -65,10 +165,47 @@ const PlumaQuoter = (() => {
   }
 
   function formatPrice(amount) {
-    return '$' + amount.toFixed(2);
+    return '$' + Number(amount).toFixed(2);
   }
 
-  // BC statutory holidays (11 total)
+  // --- Manual-quote decision ----------------------------------------------
+  // Single source of truth. UI calls this on every input change.
+  // `pageCountKnown` is tri-state: true, false (couldn't detect), or null
+  // (no file uploaded yet — still neutral).
+  function getQuoteMode(inputs) {
+    var service = getServiceType(inputs.serviceId);
+    if (service && service.requiresManualQuote) {
+      return { mode: 'manual', reason: 'notarized' };
+    }
+    if (isManualLanguagePair(inputs.fromLang, inputs.toLang)) {
+      return { mode: 'manual', reason: 'language' };
+    }
+    if (inputs.pageCountKnown === false) {
+      return { mode: 'manual', reason: 'pages-unknown' };
+    }
+    if (typeof inputs.pages === 'number' && inputs.pages > MAX_INSTANT_QUOTE_PAGES) {
+      return { mode: 'manual', reason: 'pages-too-many' };
+    }
+    return { mode: 'instant', reason: null };
+  }
+
+  function manualQuoteReasonText(reason) {
+    switch (reason) {
+      case 'notarized':
+        return 'Notarized translations require a personalized quote.';
+      case 'language':
+        return "We'll prepare a personalized quote for this language pair.";
+      case 'pages-unknown':
+        return "We couldn't automatically count the pages in your file(s), so we'll quote it manually.";
+      case 'pages-too-many':
+        return 'Documents longer than ' + MAX_INSTANT_QUOTE_PAGES +
+               ' pages are quoted manually so we can match you with the right team.';
+      default:
+        return 'This request requires a personalized quote.';
+    }
+  }
+
+  // --- Business-day / delivery --------------------------------------------
   function nthMonday(year, month, n) {
     var d = new Date(year, month, 1);
     var count = 0;
@@ -77,7 +214,6 @@ const PlumaQuoter = (() => {
   }
 
   function getBCHolidays(year) {
-    // Good Friday: Easter Sunday - 2 (Anonymous Gregorian algorithm)
     var a = year % 19, b = Math.floor(year / 100), c = year % 100;
     var dd = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
     var g = Math.floor((b - f + 1) / 3), h = (19 * a + b - dd - g + 15) % 30;
@@ -86,22 +222,21 @@ const PlumaQuoter = (() => {
     var month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
     var day = ((h + l - 7 * m + 114) % 31) + 1;
 
-    // Victoria Day: last Monday before May 25
     var vicDay = new Date(year, 4, 24);
     while (vicDay.getDay() !== 1) vicDay.setDate(vicDay.getDate() - 1);
 
     return [
-      new Date(year, 0, 1),          // New Year's Day
-      nthMonday(year, 1, 3),         // Family Day: 3rd Monday of Feb
-      new Date(year, month, day - 2),// Good Friday
+      new Date(year, 0, 1),           // New Year's Day
+      nthMonday(year, 1, 3),          // Family Day: 3rd Mon of Feb
+      new Date(year, month, day - 2), // Good Friday
       vicDay,                         // Victoria Day
-      new Date(year, 6, 1),          // Canada Day
-      nthMonday(year, 7, 1),         // BC Day: 1st Monday of Aug
-      nthMonday(year, 8, 1),         // Labour Day: 1st Monday of Sep
-      new Date(year, 8, 30),         // National Day for Truth and Reconciliation
-      nthMonday(year, 9, 2),         // Thanksgiving: 2nd Monday of Oct
-      new Date(year, 10, 11),        // Remembrance Day
-      new Date(year, 11, 25),        // Christmas Day
+      new Date(year, 6, 1),           // Canada Day
+      nthMonday(year, 7, 1),          // BC Day
+      nthMonday(year, 8, 1),          // Labour Day
+      new Date(year, 8, 30),          // Truth & Reconciliation
+      nthMonday(year, 9, 2),          // Thanksgiving
+      new Date(year, 10, 11),         // Remembrance Day
+      new Date(year, 11, 25),         // Christmas
     ];
   }
 
@@ -127,32 +262,25 @@ const PlumaQuoter = (() => {
     return result;
   }
 
-  // Get current date/time in Vancouver timezone
   function vancouverNow() {
     var s = new Date().toLocaleString('en-US', { timeZone: 'America/Vancouver' });
     return new Date(s);
   }
 
-  function calculateDeliveryDate(serviceType, pages, fromDate) {
+  function calculateDeliveryDate(turnaround, pages, fromDate) {
     const now = fromDate || vancouverNow();
-    const days = getBusinessDays(pages || 1, serviceType);
-
-    // If past cutoff (5 PM Vancouver time), start from next business day
+    const days = getBusinessDays(pages || 1, turnaround);
     let start = new Date(now);
     if (now.getHours() >= CUTOFF_HOUR) {
       start = addBusinessDays(start, 1);
       start.setHours(0, 0, 0, 0);
     }
-
     return addBusinessDays(start, days);
   }
 
   function formatDate(date) {
     return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     });
   }
 
@@ -163,22 +291,31 @@ const PlumaQuoter = (() => {
     return `${y}-${m}-${d}`;
   }
 
-  function isExpressAvailable(pages) {
-    return pages <= EXPRESS_MAX_PAGES;
-  }
-
   return {
+    // Constants
+    SERVICE_TYPES,
+    FROM_LANGUAGES,
+    TO_LANGUAGES,
     PRICING_TABLE,
-    EXPRESS_MAX_PAGES,
-    OUR_COMBOS,
-    isOurCombination,
-    calculatePrice,
+    MAX_INSTANT_QUOTE_PAGES,
+    SHIPPING_FEE_CAD,
+    // Lookups
+    getServiceType,
+    getDefaultServiceType,
+    languageLabel,
+    // Eligibility
+    isManualLanguagePair,
+    getQuoteMode,
+    manualQuoteReasonText,
+    // Pricing
+    calculateSubtotal,
+    calculateTotal,
     getBusinessDays,
     formatPrice,
+    // Delivery
     addBusinessDays,
     calculateDeliveryDate,
     formatDate,
     formatDateISO,
-    isExpressAvailable
   };
 })();

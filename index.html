@@ -14,91 +14,143 @@
     <p>Certified translation services — fast, accurate, professional.</p>
   </div>
 
-  <form id="quoteForm" autocomplete="on">
-    <div class="form-group">
-      <label for="name">Name</label>
-      <input type="text" id="name" name="name" required autocomplete="name" placeholder="Your full name">
-    </div>
+  <form id="quoteForm" autocomplete="on" novalidate>
 
-    <div class="form-group">
-      <label for="email">Email</label>
-      <input type="email" id="email" name="email" required autocomplete="email" placeholder="you@example.com">
-    </div>
-
-    <div class="form-group">
-      <label for="langCombo">Language Combination</label>
-      <select id="langCombo" name="langCombo" required>
-        <option value="" disabled selected>Select language pair</option>
-        <optgroup label="To English">
-          <option value="es-en">Spanish → English</option>
-          <option value="fr-en">French → English</option>
-          <option value="de-en">German → English</option>
-          <option value="it-en">Italian → English</option>
-        </optgroup>
-        <optgroup label="To Spanish">
-          <option value="en-es">English → Spanish</option>
-        </optgroup>
-        <optgroup label="Other">
-          <option value="other">Other language pair</option>
-        </optgroup>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label for="file">Upload Document</label>
-      <input type="file" id="file" name="file" accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png">
-    </div>
-
-    <div class="form-group">
-      <label for="pages">Number of Pages</label>
-      <input type="number" id="pages" name="pages" min="1" value="1" required disabled>
-    </div>
-
+    <!-- Step 1: Service type -->
     <div class="form-group">
       <label>Service Type</label>
+      <div class="service-type-stack" id="serviceTypeStack"></div>
+    </div>
+
+    <!-- Step 3: Language selection (two dropdowns) -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="langFrom">Translate from</label>
+        <select id="langFrom" name="langFrom" required>
+          <option value="" disabled selected>Select source language</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="langTo">Translate to</label>
+        <select id="langTo" name="langTo" required>
+          <option value="" disabled selected>Select target language</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Step 4: Document upload + auto-counted pages -->
+    <div class="form-group">
+      <label for="file">Upload Document(s)</label>
+      <input type="file" id="file" name="file"
+             accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png" multiple>
+      <div class="file-list" id="fileList"></div>
+    </div>
+
+    <div class="form-group">
+      <label for="pages">Total Pages</label>
+      <input type="number" id="pages" name="pages" min="1" value="1"
+             required disabled>
+      <div class="pages-note" id="pagesNote"></div>
+    </div>
+
+    <!-- Step 5: Turnaround -->
+    <div class="form-group">
+      <label>Turnaround</label>
       <div class="service-toggle">
         <div class="service-option" id="standardOption">
-          <input type="radio" name="service" id="serviceStandard" value="standard" checked>
-          <label for="serviceStandard">
+          <input type="radio" name="turnaround" id="turnaroundStandard" value="standard" checked>
+          <label for="turnaroundStandard">
             <span class="service-name">Standard</span>
             <span class="service-desc" id="standardDesc">3 business days</span>
           </label>
         </div>
         <div class="service-option" id="expressOption">
-          <input type="radio" name="service" id="serviceExpress" value="express">
-          <label for="serviceExpress">
+          <input type="radio" name="turnaround" id="turnaroundExpress" value="express">
+          <label for="turnaroundExpress">
             <span class="service-name">Express</span>
-            <span class="service-desc" id="expressDesc">1 business day</span>
+            <span class="service-desc" id="expressDesc">24 business hours</span>
           </label>
         </div>
       </div>
-      <div class="express-warning" id="expressWarning">
-        Express is only available for documents up to 5 pages.
+    </div>
+
+    <!-- Contact fields (needed for both paths) -->
+    <div class="form-row">
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" required
+               autocomplete="name" placeholder="Your full name">
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required
+               autocomplete="email" placeholder="you@example.com">
       </div>
     </div>
 
-    <div class="quote-display" id="quoteDisplay">
-      <h2>Your Quote</h2>
-      <div class="quote-row">
-        <span class="quote-label">Total Price</span>
-        <div>
-          <span class="quote-price" id="quotePrice">$75.00</span>
-          <div class="quote-breakdown" id="quoteBreakdown">1 page, Standard</div>
+    <!-- ================= INSTANT QUOTE BLOCK ================= -->
+    <div id="instantBlock" class="hidden">
+
+      <!-- Step 6: Quote summary + subtotal -->
+      <div class="quote-display">
+        <h2>Your Quote</h2>
+        <div class="quote-row">
+          <span class="quote-label">Subtotal</span>
+          <div>
+            <span class="quote-price" id="quoteSubtotal">$75.00</span>
+            <div class="quote-breakdown" id="quoteBreakdown">1 page, Standard</div>
+          </div>
+        </div>
+        <div class="quote-row" id="shippingRow" style="display:none">
+          <span class="quote-label">Canada Post shipping</span>
+          <span class="quote-value" id="shippingAmount">$25.00</span>
+        </div>
+        <div class="quote-row">
+          <span class="quote-label">Estimated Delivery</span>
+          <span class="quote-delivery" id="quoteDelivery"></span>
+        </div>
+        <div class="quote-row quote-total-row">
+          <span class="quote-label"><strong>Total</strong></span>
+          <span class="quote-price" id="quoteTotal">$75.00</span>
         </div>
       </div>
-      <div class="quote-row">
-        <span class="quote-label">Estimated Delivery</span>
-        <span class="quote-delivery" id="quoteDelivery"></span>
+
+      <!-- Step 7: Printed copy + shipping -->
+      <div class="form-group checkbox-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="shippingCheckbox">
+          <span>Printed copy and physical delivery</span>
+        </label>
+        <div class="checkbox-help">
+          The electronic version is already considered the original certified
+          document. If you require a physical copy, we can ship it for an
+          additional fee.
+        </div>
       </div>
+
+      <button type="submit" class="btn btn-primary" id="payBtn">Pay Now</button>
+      <div id="paypal-button-container" class="hidden"></div>
     </div>
 
-    <div id="otherLangMessage" class="hidden" style="background:#f0f4ff;border:1px solid #b8c9e8;border-radius:8px;padding:16px 20px;margin-bottom:16px;text-align:center;">
-      <p style="margin:0 0 8px;font-weight:600;">We can still help with this language pair!</p>
-      <p style="margin:0;font-size:14px;">We'll review your document and send you a custom quote by email.</p>
+    <!-- ================= MANUAL QUOTE BLOCK ================= -->
+    <div id="manualBlock" class="hidden">
+      <div class="manual-notice" id="manualNotice">
+        This request requires a personalized quote.
+      </div>
+
+      <div class="form-group">
+        <label for="notes">Notes (optional)</label>
+        <textarea id="notes" name="notes" rows="4"
+                  placeholder="Anything else we should know about your document or deadline?"></textarea>
+      </div>
+
+      <div class="manual-recap" id="manualRecap"></div>
+
+      <button type="submit" class="btn btn-primary" id="requestQuoteBtn">
+        Request a Quote
+      </button>
     </div>
-    <button type="submit" class="btn btn-primary hidden" id="payBtn">Pay Now</button>
-    <button type="submit" class="btn btn-primary hidden" id="requestQuoteBtn">Request a Quote</button>
-    <div id="paypal-button-container" class="hidden"></div>
+
     <div class="status-message" id="statusMessage"></div>
   </form>
 
@@ -109,49 +161,120 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha256-rMfkFFWoB2W1/Zx+4bgHim0WC7vKRVrq6FTeZclH1Z4=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx-preview@0.3.7/dist/docx-preview.min.js" integrity="sha256-oBGkmQFqJp6wSLhVij7vyUvDNWjvQ0I1lDlI/ySkAAU=" crossorigin="anonymous"></script>
-<!-- <script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js" integrity="sha256-5lUfzcMvCdaFOyxRJtGNAdlEfg2mGKQaEevu4PbCDVQ=" crossorigin="anonymous"></script> -->
 <script src="app.js"></script>
 <script>
-(function() {
-  // --- Configuration ---
-  // PayPal client ID (placeholder - replace with live value)
+(function () {
+  // ====================================================================
+  // Configuration
+  // ====================================================================
   const PAYPAL_CLIENT_ID = 'AQqUeGVb0P_YOO3CoyVIAILCImgF1wqMZPizACVZWjk3_9Q1zO-fdk75ep3IlZk6RqbeDIkY3QL8gNLs';
-  // Backend endpoint for creating PayPal orders
   const API_BASE = 'https://plugin.supertranslations.com/api/plumaquote';
 
-  // --- Embed mode ---
+  // Embed mode
   if (new URLSearchParams(location.search).get('embed') === 'true') {
     document.body.classList.add('embed');
   }
 
-  // --- Elements ---
-  const form = document.getElementById('quoteForm');
-  const langCombo = document.getElementById('langCombo');
-  const pagesInput = document.getElementById('pages');
-  const serviceInputs = document.querySelectorAll('input[name="service"]');
-  const expressOption = document.getElementById('expressOption');
-  const expressRadio = document.getElementById('serviceExpress');
-  const standardRadio = document.getElementById('serviceStandard');
-  const expressWarning = document.getElementById('expressWarning');
-  const priceEl = document.getElementById('quotePrice');
-  const breakdownEl = document.getElementById('quoteBreakdown');
-  const deliveryEl = document.getElementById('quoteDelivery');
-  const payBtn = document.getElementById('payBtn');
-  const statusEl = document.getElementById('statusMessage');
-  const paypalContainer = document.getElementById('paypal-button-container');
-  const otherLangMessage = document.getElementById('otherLangMessage');
-  const requestQuoteBtn = document.getElementById('requestQuoteBtn');
-  let isOurCombo = false;
+  // ====================================================================
+  // Element refs
+  // ====================================================================
+  const form                = document.getElementById('quoteForm');
+  const serviceStack        = document.getElementById('serviceTypeStack');
+  const langFrom            = document.getElementById('langFrom');
+  const langTo              = document.getElementById('langTo');
+  const fileInput           = document.getElementById('file');
+  const fileListEl          = document.getElementById('fileList');
+  const pagesInput          = document.getElementById('pages');
+  const pagesNote           = document.getElementById('pagesNote');
+  const turnaroundInputs    = () => document.querySelectorAll('input[name="turnaround"]');
+  const standardDesc        = document.getElementById('standardDesc');
+  const expressDesc         = document.getElementById('expressDesc');
+  const nameInput           = document.getElementById('name');
+  const emailInput          = document.getElementById('email');
 
-  // --- Page count: disabled by default, auto-filled from file ---
-  const fileInput = document.getElementById('file');
+  const instantBlock        = document.getElementById('instantBlock');
+  const manualBlock         = document.getElementById('manualBlock');
+  const manualNotice        = document.getElementById('manualNotice');
+  const manualRecap         = document.getElementById('manualRecap');
+  const notesInput          = document.getElementById('notes');
 
+  const subtotalEl          = document.getElementById('quoteSubtotal');
+  const breakdownEl         = document.getElementById('quoteBreakdown');
+  const totalEl             = document.getElementById('quoteTotal');
+  const deliveryEl          = document.getElementById('quoteDelivery');
+  const shippingRow         = document.getElementById('shippingRow');
+  const shippingAmount      = document.getElementById('shippingAmount');
+  const shippingCheckbox    = document.getElementById('shippingCheckbox');
+
+  const payBtn              = document.getElementById('payBtn');
+  const requestQuoteBtn     = document.getElementById('requestQuoteBtn');
+  const paypalContainer     = document.getElementById('paypal-button-container');
+  const statusEl            = document.getElementById('statusMessage');
+
+  // ====================================================================
+  // State
+  // ====================================================================
+  // pageCountKnown: true (all files counted), false (at least one failed),
+  // null (no file uploaded yet).
+  const state = {
+    serviceId: PlumaQuoter.getDefaultServiceType().id,
+    fromLang: '',
+    toLang: '',
+    files: [],              // { file, pages, ok }
+    pageCountKnown: null,
+    pages: 0,
+    turnaround: 'standard',
+    includeShipping: false,
+    uploadedFileUrls: [],   // populated on submit
+  };
+
+  // ====================================================================
+  // Populate dropdowns + service radios
+  // ====================================================================
+  function renderServiceTypes() {
+    serviceStack.innerHTML = '';
+    PlumaQuoter.SERVICE_TYPES.forEach(s => {
+      const id = 'service-' + s.id;
+      const wrap = document.createElement('div');
+      wrap.className = 'service-type-option';
+      wrap.innerHTML =
+        '<input type="radio" name="serviceType" id="' + id + '" value="' + s.id + '"' +
+        (s.isDefault ? ' checked' : '') + '>' +
+        '<label for="' + id + '">' +
+          '<span class="service-type-name">' + s.label + '</span>' +
+          '<span class="service-type-desc">' + s.description + '</span>' +
+        '</label>';
+      serviceStack.appendChild(wrap);
+    });
+    serviceStack.querySelectorAll('input[name="serviceType"]').forEach(r => {
+      r.addEventListener('change', () => {
+        state.serviceId = r.value;
+        render();
+      });
+    });
+  }
+
+  function populateLanguage(sel, list) {
+    list.forEach(l => {
+      const opt = document.createElement('option');
+      opt.value = l.id;
+      opt.textContent = l.label;
+      sel.appendChild(opt);
+    });
+  }
+  populateLanguage(langFrom, PlumaQuoter.FROM_LANGUAGES);
+  populateLanguage(langTo,   PlumaQuoter.TO_LANGUAGES);
+  renderServiceTypes();
+
+  // ====================================================================
+  // File parsing (PDF / DOCX / DOC / TXT / images) — unchanged logic,
+  // now called once per uploaded file and summed.
+  // ====================================================================
   async function countPdfPages(arrayBuffer) {
     var bytes = new Uint8Array(arrayBuffer);
     var text = '';
     for (var i = 0; i < bytes.length; i++) text += String.fromCharCode(bytes[i]);
 
-    // Find ALL /Type /Pages ... /Count N — take the max (root node has total)
     function findMaxCount(str) {
       var re = /\/Type\s*\/Pages[^>]*?\/Count\s+(\d+)/g;
       var m, best = 0;
@@ -172,7 +295,6 @@
       var sStart = sm.index + sm[0].length;
       var sEnd = text.indexOf('endstream', sStart);
       if (sEnd > sStart) {
-        // Trim trailing newline before endstream
         if (text.charCodeAt(sEnd - 1) === 0x0A) sEnd--;
         if (sEnd > sStart && text.charCodeAt(sEnd - 1) === 0x0D) sEnd--;
         ranges.push([sStart, sEnd]);
@@ -201,7 +323,6 @@
   }
 
   function countDocPages(arrayBuffer) {
-    // Parse OLE2 compound document to find page count in SummaryInformation stream
     try {
       var dv = new DataView(arrayBuffer);
       if (dv.getUint32(0, true) !== 0xE011CFD0) return null; // not OLE2
@@ -209,7 +330,6 @@
       var sectorSize = 1 << dv.getUint16(30, true);
       var firstDirSector = dv.getInt32(48, true);
 
-      // Read FAT sector IDs from header (up to 109)
       var fat = [];
       for (var i = 0; i < 109; i++) {
         var sid = dv.getInt32(76 + i * 4, true);
@@ -220,7 +340,6 @@
         }
       }
 
-      // Read a chain of sectors into a byte array
       function readChain(start) {
         var out = [], sec = start;
         while (sec >= 0 && sec < fat.length) {
@@ -232,7 +351,6 @@
         return new DataView(new Uint8Array(out).buffer);
       }
 
-      // Read directory entries (128 bytes each)
       var dir = readChain(firstDirSector);
       var numEntries = dir.byteLength / 128;
 
@@ -240,7 +358,6 @@
         var eo = e * 128;
         var nameLen = dir.getUint16(eo + 64, true);
         if (nameLen < 4) continue;
-        // Check for \x05SummaryInformation (first char is 0x05)
         if (dir.getUint16(eo, true) !== 5) continue;
         var name = '';
         for (var c = 1; c < (nameLen - 2) / 2; c++)
@@ -250,16 +367,13 @@
         var streamStart = dir.getInt32(eo + 116, true);
         var s = readChain(streamStart);
 
-        // Property set: header 28 bytes, then FMTID(16)+offset(4) per set
         var psOffset = s.getUint32(44, true);
         var nProps = s.getUint32(psOffset + 4, true);
 
         for (var p = 0; p < nProps; p++) {
           var pid = s.getUint32(psOffset + 8 + p * 8, true);
           var pOff = s.getUint32(psOffset + 8 + p * 8 + 4, true);
-          if (pid === 14) { // PIDSI_PAGECOUNT
-            return s.getInt32(psOffset + pOff + 4, true);
-          }
+          if (pid === 14) return s.getInt32(psOffset + pOff + 4, true);
         }
       }
     } catch (e) {
@@ -269,7 +383,6 @@
   }
 
   async function countDocxPages(arrayBuffer) {
-    // Primary: app.xml metadata (set by Word on save)
     try {
       var zip = await JSZip.loadAsync(arrayBuffer);
       var appXml = await zip.file('docProps/app.xml')?.async('text');
@@ -279,30 +392,23 @@
       }
     } catch (e) {}
 
-    // Fallback: render with docx-preview and measure content height vs page height.
-    // docx-preview renders content at the document's actual page width.
-    // US Letter content area: 9 inches tall (11" - 1" top - 1" bottom) at 96dpi = 864px
     try {
       var el = document.createElement('div');
       el.style.cssText = 'position:absolute;left:-9999px;';
       document.body.appendChild(el);
       await docx.renderAsync(arrayBuffer, el, null, {
         ignoreLastRenderedPageBreak: false,
-        renderHeaders: false,
-        renderFooters: false,
-        renderFootnotes: false
+        renderHeaders: false, renderFooters: false, renderFootnotes: false
       });
 
-      // Wait for images to load
       var imgs = el.querySelectorAll('img');
       if (imgs.length > 0) {
-        await Promise.all(Array.from(imgs).map(function(img) {
+        await Promise.all(Array.from(imgs).map(function (img) {
           if (img.complete) return Promise.resolve();
-          return new Promise(function(resolve) { img.onload = resolve; img.onerror = resolve; });
+          return new Promise(function (resolve) { img.onload = resolve; img.onerror = resolve; });
         }));
       }
 
-      // Content height / print page height (US Letter = 11in = 1056px at 96dpi)
       var pages = Math.max(1, Math.ceil(el.scrollHeight / 1056));
       document.body.removeChild(el);
       return pages;
@@ -314,118 +420,197 @@
   }
 
   function countTxtPages(text) {
-    // Estimate: ~250 words per page
     var words = text.trim().split(/\s+/).length;
     return Math.max(1, Math.ceil(words / 250));
   }
 
-  function setPages(n) {
-    if (n && n > 0) {
-      pagesInput.value = n;
-      pagesInput.disabled = true;
-      updateQuote();
-    } else {
-      pagesInput.disabled = true;
-      pagesInput.value = '';
-      showStatus('Could not detect page count. Please upload a different file format or contact us directly.', 'error');
+  function readFileAs(file, how) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = () => reject(r.error);
+      if (how === 'text') r.readAsText(file);
+      else r.readAsArrayBuffer(file);
+    });
+  }
+
+  async function countPagesForFile(file) {
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    try {
+      if (['jpg', 'jpeg', 'png'].includes(ext)) return 1;
+      if (ext === 'pdf')  return await countPdfPages(await readFileAs(file, 'buffer'));
+      if (ext === 'docx') return await countDocxPages(await readFileAs(file, 'buffer'));
+      if (ext === 'doc')  return countDocPages(await readFileAs(file, 'buffer'));
+      if (ext === 'txt')  return countTxtPages(await readFileAs(file, 'text'));
+      return null; // unsupported → force manual quote
+    } catch (err) {
+      console.warn('Page count failed for', file.name, err);
+      return null;
     }
   }
 
-  fileInput.addEventListener('change', function() {
-    var file = fileInput.files[0];
-    if (!file) return;
+  async function processFiles(fileList) {
+    const files = Array.from(fileList);
+    fileListEl.innerHTML = '';
+    state.files = files.map(f => ({ file: f, pages: null, ok: null }));
 
-    var ext = file.name.split('.').pop().toLowerCase();
-
-    // Images are always 1 page
-    if (['jpg', 'jpeg', 'png'].includes(ext)) {
-      setPages(1);
+    if (files.length === 0) {
+      state.pages = 0;
+      state.pageCountKnown = null;
+      pagesInput.value = '';
+      pagesNote.textContent = '';
+      render();
       return;
     }
 
-    var reader = new FileReader();
+    // Show placeholder rows while counting
+    state.files.forEach((entry, idx) => {
+      const row = document.createElement('div');
+      row.className = 'file-row';
+      row.dataset.idx = idx;
+      row.innerHTML =
+        '<span class="file-name">' + escapeHtml(entry.file.name) + '</span>' +
+        '<span class="file-pages" id="fp-' + idx + '">counting…</span>';
+      fileListEl.appendChild(row);
+    });
 
-    if (ext === 'pdf') {
-      reader.onload = async function() { setPages(await countPdfPages(reader.result)); };
-      reader.readAsArrayBuffer(file);
-    } else if (ext === 'docx') {
-      reader.onload = async function() { setPages(await countDocxPages(reader.result)); };
-      reader.readAsArrayBuffer(file);
-    } else if (ext === 'doc') {
-      reader.onload = function() { setPages(countDocPages(reader.result)); };
-      reader.readAsArrayBuffer(file);
-    } else if (ext === 'txt') {
-      reader.onload = function() { setPages(countTxtPages(reader.result)); };
-      reader.readAsText(file);
-    }
-  });
-
-  // --- Language combo handler ---
-  langCombo.addEventListener('change', function() {
-    isOurCombo = PlumaQuoter.isOurCombination(langCombo.value);
-    var quoteDisplay = document.getElementById('quoteDisplay');
-    if (isOurCombo) {
-      quoteDisplay.classList.remove('hidden');
-      otherLangMessage.classList.add('hidden');
-      payBtn.classList.remove('hidden');
-      requestQuoteBtn.classList.add('hidden');
-    } else if (langCombo.value === 'other') {
-      quoteDisplay.classList.add('hidden');
-      otherLangMessage.classList.remove('hidden');
-      payBtn.classList.add('hidden');
-      requestQuoteBtn.classList.remove('hidden');
-    }
-    updateQuote();
-  });
-
-  // --- Quote update ---
-  function getService() {
-    return document.querySelector('input[name="service"]:checked').value;
-  }
-
-  function getPages() {
-    return Math.max(1, parseInt(pagesInput.value) || 1);
-  }
-
-  function updateQuote() {
-    const pages = getPages();
-    const service = getService();
-
-    // Express availability check
-    if (!PlumaQuoter.isExpressAvailable(pages)) {
-      expressOption.classList.add('disabled');
-      expressRadio.disabled = true;
-      expressWarning.classList.add('visible');
-      if (service === 'express') {
-        standardRadio.checked = true;
+    // Count in parallel
+    await Promise.all(state.files.map(async (entry, idx) => {
+      const n = await countPagesForFile(entry.file);
+      entry.pages = (typeof n === 'number' && n > 0) ? n : null;
+      entry.ok = entry.pages !== null;
+      const cell = document.getElementById('fp-' + idx);
+      if (cell) {
+        cell.textContent = entry.ok
+          ? (entry.pages + (entry.pages === 1 ? ' page' : ' pages'))
+          : 'page count unavailable';
+        cell.classList.toggle('file-pages-error', !entry.ok);
       }
+    }));
+
+    const allOk = state.files.every(e => e.ok);
+    const total = state.files.reduce((sum, e) => sum + (e.pages || 0), 0);
+
+    state.pageCountKnown = allOk;
+    state.pages = allOk ? total : 0;
+
+    if (allOk) {
+      pagesInput.value = total;
+      pagesNote.textContent = 'Auto-detected from your file(s).';
     } else {
-      expressOption.classList.remove('disabled');
-      expressRadio.disabled = false;
-      expressWarning.classList.remove('visible');
+      pagesInput.value = '';
+      pagesNote.textContent = "We couldn't automatically count pages in at least one file — we'll quote it manually.";
     }
-
-    const activeService = getService();
-    const price = PlumaQuoter.calculatePrice(pages, activeService);
-    const delivery = PlumaQuoter.calculateDeliveryDate(activeService, pages);
-
-    // Update service type labels with actual delivery times for current page count
-    var stdDays = PlumaQuoter.getBusinessDays(pages, 'standard');
-    var expDays = PlumaQuoter.getBusinessDays(pages, 'express');
-    document.getElementById('standardDesc').textContent = stdDays + ' business day' + (stdDays > 1 ? 's' : '');
-    document.getElementById('expressDesc').textContent = expDays + ' business day' + (expDays > 1 ? 's' : '');
-
-    priceEl.textContent = PlumaQuoter.formatPrice(price);
-    breakdownEl.textContent = pages + (pages === 1 ? ' page' : ' pages') + ', ' +
-      activeService.charAt(0).toUpperCase() + activeService.slice(1);
-    deliveryEl.textContent = PlumaQuoter.formatDate(delivery);
+    render();
   }
 
-  pagesInput.addEventListener('input', updateQuote);
-  serviceInputs.forEach(r => r.addEventListener('change', updateQuote));
-  updateQuote();
+  fileInput.addEventListener('change', () => processFiles(fileInput.files));
 
-  // --- PayPal SDK loader ---
+  // ====================================================================
+  // Language + turnaround listeners
+  // ====================================================================
+  langFrom.addEventListener('change', () => { state.fromLang = langFrom.value; render(); });
+  langTo.addEventListener('change',   () => { state.toLang   = langTo.value;   render(); });
+  turnaroundInputs().forEach(r => r.addEventListener('change', () => {
+    const checked = document.querySelector('input[name="turnaround"]:checked');
+    state.turnaround = checked ? checked.value : 'standard';
+    render();
+  }));
+  shippingCheckbox.addEventListener('change', () => {
+    state.includeShipping = shippingCheckbox.checked;
+    render();
+  });
+
+  // ====================================================================
+  // Render — switches between instant quote and manual quote views
+  // ====================================================================
+  function render() {
+    const decision = PlumaQuoter.getQuoteMode({
+      serviceId: state.serviceId,
+      fromLang: state.fromLang,
+      toLang: state.toLang,
+      pageCountKnown: state.pageCountKnown,
+      pages: state.pages,
+    });
+
+    // Update Standard/Express delivery labels based on current page count
+    const pagesForEst = Math.max(1, state.pages || 1);
+    const stdDays = PlumaQuoter.getBusinessDays(pagesForEst, 'standard');
+    const expDays = PlumaQuoter.getBusinessDays(pagesForEst, 'express');
+    standardDesc.textContent = stdDays + ' business day' + (stdDays > 1 ? 's' : '');
+    expressDesc.textContent  = expDays === 1
+      ? '24 business hours'
+      : expDays + ' business days';
+
+    if (decision.mode === 'instant' && state.pages > 0) {
+      // --- Instant quote ---
+      instantBlock.classList.remove('hidden');
+      manualBlock.classList.add('hidden');
+
+      const subtotal = PlumaQuoter.calculateSubtotal(
+        state.pages, state.turnaround, state.serviceId);
+      const total = PlumaQuoter.calculateTotal(
+        state.pages, state.turnaround, state.serviceId, state.includeShipping);
+      const delivery = PlumaQuoter.calculateDeliveryDate(state.turnaround, state.pages);
+
+      subtotalEl.textContent = PlumaQuoter.formatPrice(subtotal);
+      totalEl.textContent    = PlumaQuoter.formatPrice(total);
+      deliveryEl.textContent = PlumaQuoter.formatDate(delivery);
+      breakdownEl.textContent =
+        state.pages + (state.pages === 1 ? ' page' : ' pages') + ', ' +
+        state.turnaround.charAt(0).toUpperCase() + state.turnaround.slice(1) +
+        ', ' + (PlumaQuoter.getServiceType(state.serviceId) || {}).label;
+
+      shippingAmount.textContent = PlumaQuoter.formatPrice(PlumaQuoter.SHIPPING_FEE_CAD);
+      shippingRow.style.display = state.includeShipping ? '' : 'none';
+
+    } else if (decision.mode === 'manual') {
+      // --- Manual quote ---
+      instantBlock.classList.add('hidden');
+      manualBlock.classList.remove('hidden');
+      manualNotice.textContent = PlumaQuoter.manualQuoteReasonText(decision.reason);
+      manualRecap.innerHTML = buildManualRecapHtml();
+    } else {
+      // Not enough data yet — show neither output block
+      instantBlock.classList.add('hidden');
+      manualBlock.classList.add('hidden');
+    }
+  }
+
+  function buildManualRecapHtml() {
+    const service = PlumaQuoter.getServiceType(state.serviceId);
+    const rows = [];
+    if (service) rows.push(['Service', service.label]);
+    if (state.fromLang) rows.push(['From', PlumaQuoter.languageLabel(PlumaQuoter.FROM_LANGUAGES, state.fromLang)]);
+    if (state.toLang)   rows.push(['To',   PlumaQuoter.languageLabel(PlumaQuoter.TO_LANGUAGES,   state.toLang)]);
+    if (state.files.length) {
+      rows.push(['Files', state.files.map(e => escapeHtml(e.file.name)).join(', ')]);
+    }
+    if (state.pageCountKnown === true && state.pages > 0) {
+      rows.push(['Pages', String(state.pages)]);
+    }
+    if (state.turnaround) {
+      rows.push(['Turnaround', state.turnaround === 'express' ? 'Express' : 'Standard']);
+    }
+    if (!rows.length) return '';
+    return '<h3 class="manual-recap-title">Summary</h3>' +
+      rows.map(([k, v]) =>
+        '<div class="manual-recap-row"><span>' + k + '</span><span>' + v + '</span></div>'
+      ).join('');
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+  }
+
+  // Initial paint
+  render();
+
+  // ====================================================================
+  // PayPal SDK loader (unchanged behaviour)
+  // ====================================================================
   let paypalLoaded = false;
   let paypalButtons = null;
 
@@ -433,7 +618,7 @@
     return new Promise((resolve, reject) => {
       if (paypalLoaded) return resolve();
       const script = document.createElement('script');
-      script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=CAD`;
+      script.src = 'https://www.paypal.com/sdk/js?client-id=' + PAYPAL_CLIENT_ID + '&currency=CAD';
       script.onload = () => { paypalLoaded = true; resolve(); };
       script.onerror = () => reject(new Error('Failed to load PayPal SDK'));
       document.head.appendChild(script);
@@ -444,84 +629,125 @@
     statusEl.className = 'status-message ' + type;
     statusEl.textContent = msg;
   }
-
   function clearStatus() {
     statusEl.className = 'status-message';
     statusEl.textContent = '';
   }
 
-  // --- File upload helper ---
-  let uploadedFileUrl = '';
-
-  async function uploadFile() {
-    const file = fileInput.files[0];
-    if (!file) return '';
-
+  // ====================================================================
+  // File upload helper (server-side storage)
+  // ====================================================================
+  async function uploadSingle(file) {
     const formData = new FormData();
     formData.append('file', file);
-
-    const res = await fetch(API_BASE + '/upload-file', {
-      method: 'POST',
-      body: formData
-    });
-
+    const res = await fetch(API_BASE + '/upload-file', { method: 'POST', body: formData });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ message: 'Upload failed' }));
       throw new Error(err.message || 'File upload failed');
     }
-
     const data = await res.json();
     return data.fileUrl || '';
   }
 
-  // --- Form submission: upload file, then show PayPal buttons ---
-  form.addEventListener('submit', async function(e) {
+  async function uploadAllFiles() {
+    if (!state.files.length) return [];
+    const urls = await Promise.all(state.files.map(e => uploadSingle(e.file)));
+    return urls.filter(Boolean);
+  }
+
+  // ====================================================================
+  // Form submission
+  // ====================================================================
+  form.addEventListener('submit', async function (e) {
     e.preventDefault();
     clearStatus();
 
-    const name = document.getElementById('name').value.trim();
-    const email = document.getElementById('email').value.trim();
-    const pages = getPages();
-    const service = getService();
-    const lang = langCombo.value;
-
-    if (!name || !email || !pages || !lang) {
-      showStatus('Please fill in all required fields.', 'error');
+    const name = nameInput.value.trim();
+    const email = emailInput.value.trim();
+    if (!name || !email) {
+      showStatus('Please fill in your name and email.', 'error');
       return;
     }
 
-    // "Other" language: send email request instead of payment
-    if (!PlumaQuoter.isOurCombination(lang)) {
-      showStatus('Sending your request...', 'loading');
-      try {
-        var uploadUrl = '';
-        if (fileInput.files.length > 0) {
-          uploadUrl = await uploadFile();
-        }
-        const res = await fetch(API_BASE + '/request-quote', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, pages, languagePair: lang, fileUrl: uploadUrl })
-        });
-        if (res.ok) {
-          showStatus('Thank you! We\'ll review your document and email you a custom quote shortly.', 'success');
-          requestQuoteBtn.classList.add('hidden');
-        } else {
-          showStatus('Something went wrong. Please email us directly at info@plumatranslations.com', 'error');
-        }
-      } catch (err) {
+    const decision = PlumaQuoter.getQuoteMode({
+      serviceId: state.serviceId,
+      fromLang: state.fromLang,
+      toLang: state.toLang,
+      pageCountKnown: state.pageCountKnown,
+      pages: state.pages,
+    });
+
+    if (!state.fromLang || !state.toLang) {
+      showStatus('Please choose both a source and target language.', 'error');
+      return;
+    }
+
+    if (decision.mode === 'manual') {
+      await submitManualQuote(name, email, decision.reason);
+      return;
+    }
+
+    if (state.pages <= 0) {
+      showStatus('Please upload a document so we can count pages.', 'error');
+      return;
+    }
+
+    await submitInstantOrder(name, email);
+  });
+
+  // --------------------------------------------------------------------
+  // Manual quote submission — spec: service, source lang, target lang,
+  // file names, page count (if available), turnaround (if available),
+  // customer name, customer email, notes.
+  // --------------------------------------------------------------------
+  async function submitManualQuote(name, email, reason) {
+    showStatus('Sending your request…', 'loading');
+    try {
+      let fileUrls = [];
+      if (state.files.length) fileUrls = await uploadAllFiles();
+
+      const payload = {
+        name,
+        email,
+        service: state.serviceId,
+        fromLanguage: state.fromLang || null,
+        toLanguage:   state.toLang   || null,
+        fileNames: state.files.map(e => e.file.name),
+        fileUrls,
+        pages: state.pageCountKnown === true ? state.pages : null,
+        turnaround: state.turnaround || null,
+        notes: notesInput.value.trim() || '',
+        reason,
+      };
+
+      const res = await fetch(API_BASE + '/request-quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        showStatus('Our team will contact you shortly with a personalized quote.', 'success');
+        requestQuoteBtn.disabled = true;
+      } else {
         showStatus('Something went wrong. Please email us directly at info@plumatranslations.com', 'error');
       }
-      return;
+    } catch (err) {
+      console.error(err);
+      showStatus('Something went wrong. Please email us directly at info@plumatranslations.com', 'error');
     }
+  }
 
+  // --------------------------------------------------------------------
+  // Instant order → upload files → PayPal flow
+  // --------------------------------------------------------------------
+  async function submitInstantOrder(name, email) {
     payBtn.style.display = 'none';
 
-    // Upload file first (if one was selected)
-    if (fileInput.files.length > 0) {
-      showStatus('Uploading document...', 'loading');
+    if (state.files.length > 0) {
+      showStatus('Uploading document…', 'loading');
       try {
-        uploadedFileUrl = await uploadFile();
+        state.uploadedFileUrls = await uploadAllFiles();
       } catch (err) {
         console.error('Upload error:', err);
         showStatus('File upload failed. Please try again.', 'error');
@@ -530,32 +756,39 @@
       }
     }
 
-    showStatus('Loading payment options...', 'loading');
+    showStatus('Loading payment options…', 'loading');
 
     try {
       await loadPayPalSDK();
       clearStatus();
       paypalContainer.classList.remove('hidden');
 
-      // Destroy existing buttons if re-submitting
-      if (paypalButtons) {
-        paypalContainer.innerHTML = '';
-      }
+      if (paypalButtons) paypalContainer.innerHTML = '';
+
+      const orderPayload = () => ({
+        name, email,
+        service: state.serviceId,
+        fromLanguage: state.fromLang,
+        toLanguage: state.toLang,
+        pages: state.pages,
+        turnaround: state.turnaround,
+        includeShipping: state.includeShipping,
+        shippingFee: state.includeShipping ? PlumaQuoter.SHIPPING_FEE_CAD : 0,
+        subtotal: PlumaQuoter.calculateSubtotal(state.pages, state.turnaround, state.serviceId),
+        total: PlumaQuoter.calculateTotal(state.pages, state.turnaround, state.serviceId, state.includeShipping),
+        deliveryDate: PlumaQuoter.formatDateISO(
+          PlumaQuoter.calculateDeliveryDate(state.turnaround, state.pages)),
+        fileUrls: state.uploadedFileUrls,
+      });
 
       paypalButtons = paypal.Buttons({
-        style: {
-          layout: 'vertical',
-          color: 'blue',
-          shape: 'rect',
-          label: 'pay'
-        },
+        style: { layout: 'vertical', color: 'blue', shape: 'rect', label: 'pay' },
 
-        createOrder: async function() {
-          const deliveryDate = PlumaQuoter.formatDateISO(PlumaQuoter.calculateDeliveryDate(service, pages));
+        createOrder: async function () {
           const res = await fetch(API_BASE + '/create-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, pages, service, deliveryDate, languagePair: lang })
+            body: JSON.stringify(orderPayload()),
           });
           if (!res.ok) {
             const err = await res.json().catch(() => ({ message: 'Server error' }));
@@ -565,34 +798,37 @@
           return data.orderId;
         },
 
-        onApprove: async function(data) {
-          showStatus('Processing payment...', 'loading');
+        onApprove: async function (data) {
+          showStatus('Processing payment…', 'loading');
           try {
-            const deliveryDate = PlumaQuoter.formatDateISO(PlumaQuoter.calculateDeliveryDate(service, pages));
             const res = await fetch(API_BASE + '/capture-order', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                orderId: data.orderID,
-                name, email, pages, service, deliveryDate,
-                languagePair: lang, fileUrl: uploadedFileUrl
-              })
+              body: JSON.stringify(Object.assign({ orderId: data.orderID }, orderPayload())),
             });
             if (!res.ok) {
               const err = await res.json().catch(() => ({ message: 'Capture failed' }));
               throw new Error(err.message || 'Payment capture failed');
             }
             const result = await res.json();
-            const delivery = PlumaQuoter.formatDate(PlumaQuoter.calculateDeliveryDate(service, pages));
+            const delivery = PlumaQuoter.formatDate(
+              PlumaQuoter.calculateDeliveryDate(state.turnaround, state.pages));
             const params = new URLSearchParams({
               name, email,
-              pages: pages.toString(),
-              service: result.service || service,
-              price: result.price || PlumaQuoter.calculatePrice(pages, service).toFixed(2),
+              service: state.serviceId,
+              fromLanguage: state.fromLang,
+              toLanguage: state.toLang,
+              pages: String(state.pages),
+              turnaround: result.turnaround || state.turnaround,
+              shipping: state.includeShipping ? 'yes' : 'no',
+              shippingFee: String(state.includeShipping ? PlumaQuoter.SHIPPING_FEE_CAD : 0),
+              subtotal: (result.subtotal ||
+                PlumaQuoter.calculateSubtotal(state.pages, state.turnaround, state.serviceId)).toString(),
+              total: (result.total ||
+                PlumaQuoter.calculateTotal(state.pages, state.turnaround, state.serviceId, state.includeShipping)).toString(),
               delivery,
-              orderId: data.orderID
+              orderId: data.orderID,
             });
-            // Forward embed param if present
             if (new URLSearchParams(location.search).get('embed') === 'true') {
               params.set('embed', 'true');
             }
@@ -603,17 +839,17 @@
           }
         },
 
-        onError: function(err) {
+        onError: function (err) {
           console.error('PayPal error:', err);
           showStatus('Payment failed. Please try again.', 'error');
           payBtn.style.display = '';
           paypalContainer.classList.add('hidden');
         },
 
-        onCancel: function() {
+        onCancel: function () {
           payBtn.style.display = '';
           paypalContainer.classList.add('hidden');
-        }
+        },
       });
 
       paypalButtons.render('#paypal-button-container');
@@ -623,7 +859,7 @@
       payBtn.style.display = '';
       paypalContainer.classList.add('hidden');
     }
-  });
+  }
 })();
 </script>
 
