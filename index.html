@@ -132,10 +132,10 @@
       <div id="paypal-button-container" class="hidden"></div>
     </div>
 
-    <!-- ================= MANUAL QUOTE BLOCK ================= -->
+    <!-- ================= MANUAL / CONTACT BLOCK ================= -->
     <div id="manualBlock" class="hidden">
       <div class="manual-notice" id="manualNotice">
-        This request requires a personalized quote.
+        Send us your details below and we'll reply by email — no commitment, no obligation.
       </div>
 
       <div class="form-group">
@@ -147,7 +147,7 @@
       <div class="manual-recap" id="manualRecap"></div>
 
       <button type="submit" class="btn btn-primary" id="requestQuoteBtn">
-        Request a Quote
+        Contact Us
       </button>
     </div>
 
@@ -703,31 +703,33 @@
   async function submitManualQuote(name, email, reason) {
     showStatus('Sending your request…', 'loading');
     try {
-      let fileUrls = [];
-      if (state.files.length) fileUrls = await uploadAllFiles();
-
-      const payload = {
-        name,
-        email,
-        service: state.serviceId,
-        fromLanguage: state.fromLang || null,
-        toLanguage:   state.toLang   || null,
-        fileNames: state.files.map(e => e.file.name),
-        fileUrls,
-        pages: state.pageCountKnown === true ? state.pages : null,
-        turnaround: state.turnaround || null,
-        notes: notesInput.value.trim() || '',
-        reason,
-      };
+      // Manual flow submits one multipart request to /request-quote that
+      // includes the file(s) + real customer info. The server forwards it
+      // through Pluma's Elementor lead form — no separate /upload-file call,
+      // no SMTP, no paid-order tagging.
+      const fd = new FormData();
+      fd.append('name', name);
+      fd.append('email', email);
+      fd.append('service', state.serviceId || '');
+      fd.append('fromLanguage',
+        PlumaQuoter.languageLabel(PlumaQuoter.FROM_LANGUAGES, state.fromLang) || '');
+      fd.append('toLanguage',
+        PlumaQuoter.languageLabel(PlumaQuoter.TO_LANGUAGES, state.toLang) || '');
+      if (state.pageCountKnown === true && state.pages > 0) {
+        fd.append('pages', String(state.pages));
+      }
+      fd.append('turnaround', state.turnaround || '');
+      fd.append('notes', notesInput.value.trim() || '');
+      fd.append('reason', reason || '');
+      state.files.forEach(e => fd.append('files', e.file, e.file.name));
 
       const res = await fetch(API_BASE + '/request-quote', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: fd,
       });
 
       if (res.ok) {
-        showStatus('Our team will contact you shortly with a personalized quote.', 'success');
+        showStatus("Thanks — we got your message and will reply by email shortly.", 'success');
         requestQuoteBtn.disabled = true;
       } else {
         showStatus('Something went wrong. Please email us directly at info@plumatranslations.com', 'error');

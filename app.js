@@ -42,9 +42,11 @@ const PlumaQuoter = (() => {
       description:
         'The act of a notary witnessing a signature or administering an oath. ' +
         'Not all documents require notarization, but some, such as apostilles ' +
-        'for countries outside of Canada, do. You can consult our guide for ' +
-        'more details. If you have further questions, please verify with the ' +
-        'institution that requires your documents.',
+        'for countries outside of Canada, do. You can consult ' +
+        '<a href="https://plumatranslations.com/certified-translation-in-canada-what-you-need-to-know/" ' +
+        'target="_blank" rel="noopener">our guide</a> for more details. If you ' +
+        'have further questions, please verify with the institution that ' +
+        'requires your documents.',
       requiresManualQuote: true,
     },
   ];
@@ -58,22 +60,100 @@ const PlumaQuoter = (() => {
   }
 
   // --- Languages -----------------------------------------------------------
-  // Spec: From = English / Spanish / German / Italian / Other
-  //       To   = English / Spanish / Other
-  // Either side = 'other' → manual quote.
-  const FROM_LANGUAGES = [
+  // Full list shown in both dropdowns. Instant-quote eligibility is restricted
+  // to the INSTANT_FROM_SET / INSTANT_TO_SET pairs; everything else silently
+  // routes to the manual ("contact us") flow.
+  const ALL_LANGUAGES = [
     { id: 'en', label: 'English' },
     { id: 'es', label: 'Spanish' },
+    { id: 'fr', label: 'French' },
     { id: 'de', label: 'German' },
     { id: 'it', label: 'Italian' },
-    { id: 'other', label: 'Other' },
+    { id: 'pt', label: 'Portuguese' },
+    { id: 'nl', label: 'Dutch' },
+    { id: 'ru', label: 'Russian' },
+    { id: 'pl', label: 'Polish' },
+    { id: 'uk', label: 'Ukrainian' },
+    { id: 'ro', label: 'Romanian' },
+    { id: 'tr', label: 'Turkish' },
+    { id: 'el', label: 'Greek' },
+    { id: 'sv', label: 'Swedish' },
+    { id: 'no', label: 'Norwegian' },
+    { id: 'da', label: 'Danish' },
+    { id: 'fi', label: 'Finnish' },
+    { id: 'cs', label: 'Czech' },
+    { id: 'sk', label: 'Slovak' },
+    { id: 'hu', label: 'Hungarian' },
+    { id: 'bg', label: 'Bulgarian' },
+    { id: 'hr', label: 'Croatian' },
+    { id: 'sr', label: 'Serbian' },
+    { id: 'sl', label: 'Slovenian' },
+    { id: 'lt', label: 'Lithuanian' },
+    { id: 'lv', label: 'Latvian' },
+    { id: 'et', label: 'Estonian' },
+    { id: 'ar', label: 'Arabic' },
+    { id: 'he', label: 'Hebrew' },
+    { id: 'fa', label: 'Persian (Farsi)' },
+    { id: 'ur', label: 'Urdu' },
+    { id: 'hi', label: 'Hindi' },
+    { id: 'bn', label: 'Bengali' },
+    { id: 'pa', label: 'Punjabi' },
+    { id: 'gu', label: 'Gujarati' },
+    { id: 'ta', label: 'Tamil' },
+    { id: 'te', label: 'Telugu' },
+    { id: 'ml', label: 'Malayalam' },
+    { id: 'mr', label: 'Marathi' },
+    { id: 'kn', label: 'Kannada' },
+    { id: 'si', label: 'Sinhala' },
+    { id: 'th', label: 'Thai' },
+    { id: 'vi', label: 'Vietnamese' },
+    { id: 'id', label: 'Indonesian' },
+    { id: 'ms', label: 'Malay' },
+    { id: 'tl', label: 'Filipino (Tagalog)' },
+    { id: 'zh', label: 'Chinese (Mandarin)' },
+    { id: 'zh-yue', label: 'Chinese (Cantonese)' },
+    { id: 'ja', label: 'Japanese' },
+    { id: 'ko', label: 'Korean' },
+    { id: 'sw', label: 'Swahili' },
+    { id: 'am', label: 'Amharic' },
+    { id: 'so', label: 'Somali' },
+    { id: 'ha', label: 'Hausa' },
+    { id: 'yo', label: 'Yoruba' },
+    { id: 'ig', label: 'Igbo' },
+    { id: 'zu', label: 'Zulu' },
+    { id: 'af', label: 'Afrikaans' },
+    { id: 'ca', label: 'Catalan' },
+    { id: 'gl', label: 'Galician' },
+    { id: 'eu', label: 'Basque' },
+    { id: 'cy', label: 'Welsh' },
+    { id: 'ga', label: 'Irish' },
+    { id: 'is', label: 'Icelandic' },
+    { id: 'mt', label: 'Maltese' },
+    { id: 'sq', label: 'Albanian' },
+    { id: 'mk', label: 'Macedonian' },
+    { id: 'bs', label: 'Bosnian' },
+    { id: 'hy', label: 'Armenian' },
+    { id: 'ka', label: 'Georgian' },
+    { id: 'az', label: 'Azerbaijani' },
+    { id: 'kk', label: 'Kazakh' },
+    { id: 'uz', label: 'Uzbek' },
+    { id: 'mn', label: 'Mongolian' },
+    { id: 'my', label: 'Burmese' },
+    { id: 'km', label: 'Khmer' },
+    { id: 'lo', label: 'Lao' },
+    { id: 'ne', label: 'Nepali' },
+    { id: 'ps', label: 'Pashto' },
+    { id: 'ku', label: 'Kurdish' },
   ];
 
-  const TO_LANGUAGES = [
-    { id: 'en', label: 'English' },
-    { id: 'es', label: 'Spanish' },
-    { id: 'other', label: 'Other' },
-  ];
+  const FROM_LANGUAGES = ALL_LANGUAGES;
+  const TO_LANGUAGES = ALL_LANGUAGES;
+
+  // Pairs that get an instant quote. Anything outside this falls through to
+  // the manual ("contact us") flow silently — the user never sees an "Other"
+  // option, just picks any language and we adapt.
+  const INSTANT_FROM_SET = new Set(['en', 'es', 'de', 'it']);
+  const INSTANT_TO_SET   = new Set(['en', 'es']);
 
   function languageLabel(list, id) {
     var l = list.find(x => x.id === id);
@@ -82,8 +162,8 @@ const PlumaQuoter = (() => {
 
   function isManualLanguagePair(fromId, toId) {
     if (!fromId || !toId) return false; // not yet chosen — still neutral
-    if (fromId === 'other' || toId === 'other') return true;
     if (fromId === toId) return true;   // same-language "translation" — manual review
+    if (!INSTANT_FROM_SET.has(fromId) || !INSTANT_TO_SET.has(toId)) return true;
     return false;
   }
 
@@ -192,16 +272,16 @@ const PlumaQuoter = (() => {
   function manualQuoteReasonText(reason) {
     switch (reason) {
       case 'notarized':
-        return 'Notarized translations require a personalized quote.';
+        return "Notarized translations need manual review. Send us your details below and we'll reply by email — no commitment, no obligation.";
       case 'language':
-        return "We'll prepare a personalized quote for this language pair.";
+        return "We'll handle this language pair manually. Send us your document and we'll reply by email — no commitment, no obligation.";
       case 'pages-unknown':
-        return "We couldn't automatically count the pages in your file(s), so we'll quote it manually.";
+        return "We couldn't automatically count the pages in your file(s). Send us your document and we'll reply by email — no commitment, no obligation.";
       case 'pages-too-many':
         return 'Documents longer than ' + MAX_INSTANT_QUOTE_PAGES +
-               ' pages are quoted manually so we can match you with the right team.';
+               " pages are handled manually. Send us your document and we'll reply by email — no commitment, no obligation.";
       default:
-        return 'This request requires a personalized quote.';
+        return "Send us your details below and we'll reply by email — no commitment, no obligation.";
     }
   }
 
