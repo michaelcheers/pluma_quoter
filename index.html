@@ -127,9 +127,6 @@
           additional fee.
         </div>
       </div>
-
-      <button type="submit" class="btn btn-primary" id="payBtn">Pay Now</button>
-      <div id="paypal-button-container" class="hidden"></div>
     </div>
 
     <!-- ================= MANUAL / CONTACT BLOCK ================= -->
@@ -145,14 +142,154 @@
       </div>
 
       <div class="manual-recap" id="manualRecap"></div>
+    </div>
 
-      <button type="submit" class="btn btn-primary" id="requestQuoteBtn">
+    <!-- ================= TERMS & CONDITIONS GATE ================= -->
+    <div id="tcGate" class="hidden">
+      <div class="form-group checkbox-group tc-group">
+        <button type="button" class="btn-tc-view" id="viewTcBtn">View Terms and Conditions</button>
+        <label class="checkbox-label">
+          <input type="checkbox" id="tcCheckbox" disabled>
+          <span>I have read and accept the Terms and Conditions</span>
+        </label>
+        <div class="checkbox-help" id="tcHelp">
+          Please open and review the Terms and Conditions before continuing.
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SUBMIT AREA ================= -->
+    <div id="submitArea" class="hidden">
+      <button type="submit" class="btn btn-primary hidden" id="payBtn" disabled>Pay Now</button>
+      <button type="submit" class="btn btn-primary hidden" id="requestQuoteBtn" disabled>
         Contact Us
       </button>
+      <div id="paypal-button-container" class="hidden"></div>
     </div>
 
     <div class="status-message" id="statusMessage"></div>
   </form>
+
+  <!-- ================= TERMS & CONDITIONS MODAL ================= -->
+  <div id="tcModal" class="tc-modal hidden" role="dialog" aria-modal="true" aria-labelledby="tcModalTitle">
+    <div class="tc-modal-backdrop" id="tcModalBackdrop"></div>
+    <div class="tc-modal-dialog">
+      <div class="tc-modal-header">
+        <h2 id="tcModalTitle">Terms and Conditions</h2>
+        <button type="button" class="tc-modal-close" id="tcModalCloseBtn" aria-label="Close">×</button>
+      </div>
+      <div class="tc-modal-body">
+        <p class="tc-version">Latest version: 13/04/2026</p>
+        <p>These Terms and Conditions govern the use of the website plumatranslations.com, any online quotation or pricing tool made available through the website, and the purchase of translation-related services from [Insert legal entity name], carrying on business as Pluma Translations (“Pluma Translations”, “we”, “us”, or “our”).</p>
+        <p>By using our website, requesting a quote, uploading documents, placing an order, or purchasing any service from us, you agree to be bound by these Terms and Conditions.</p>
+
+        <h3>1. Definitions</h3>
+        <p>For the purposes of these Terms and Conditions:</p>
+        <p>“Automated Quote” means any price, turnaround time, estimate, or service indication generated automatically through our website or online quoting tool.</p>
+        <p>“Client” means any person or entity requesting or purchasing services from Pluma Translations.</p>
+        <p>“Complex Document” means any document or content that, in our sole reasonable discretion, requires manual review by a translator before a final price can be confirmed, including but not limited to handwritten text, poor-quality scans, partially illegible documents, multi-column formatting, seals, stamps, annotations, tables, non-editable files, mixed-language content, legal text, medical text, technical text, academic text, contracts, court materials, or documents requiring substantial formatting recreation or terminology research.</p>
+        <p>“Final Quote” means the written price confirmation issued by Pluma Translations after any required human review.</p>
+        <p>“Original Document” means the source material provided by the Client for translation or related services.</p>
+        <p>“Services” means translation, certified translation, proofreading, editing, and any other language-related services offered by Pluma Translations.</p>
+        <p>“Website” means plumatranslations.com and any related online forms, portals, or quotation tools operated by Pluma Translations.</p>
+
+        <h3>2. Use of the Website and Online Quote Tool</h3>
+        <p>2.1. The Website may include an online quoting or pricing tool for the convenience of Clients.</p>
+        <p>2.2. Any Automated Quote is provided for informational purposes only and is not a binding offer, legal commitment, or guaranteed final price.</p>
+        <p>2.3. Automated Quotes are generated based solely on the information, selections, and files provided by the Client, and may be inaccurate if the information submitted is incomplete, incorrect, misleading, or insufficient for proper evaluation.</p>
+        <p>2.4. Pluma Translations reserves the right to manually review any request and to revise the price, turnaround time, service scope, or availability before accepting the order.</p>
+        <p>2.5. An Automated Quote may exclude, unless expressly stated otherwise, applicable taxes, urgent service fees, certification fees, formatting fees, mailing or courier fees, notarization fees, third-party fees, or any surcharge arising from document complexity.</p>
+        <p>2.6. No contract is formed on the basis of an Automated Quote alone. A contract is formed only when: (a) Pluma Translations issues a written Final Quote and the Client accepts it; or (b) Pluma Translations confirms the order in writing; or (c) Pluma Translations begins providing the Services after payment or approval, whichever applies.</p>
+
+        <h3>3. Mandatory Review of Complex or Specialized Text</h3>
+        <p>3.1. Any Complex Document, specialized content, or difficult text shall be subject to manual review by a translator before a final price is confirmed.</p>
+        <p>3.2. If, after review, Pluma Translations determines that the document contains complex, technical, legal, medical, academic, handwritten, unclear, or otherwise non-standard text, the work shall be quoted separately, and the Client shall be informed of the exact revised amount before the Services begin.</p>
+        <p>3.3. Pluma Translations may pause, decline, or delay the order until the Client approves the revised Final Quote.</p>
+        <p>3.4. If the Client does not approve the revised Final Quote, Pluma Translations may cancel the order without further obligation, subject to any refund policy applicable under Section 9.</p>
+        <p>3.5. This clause applies even if the Website initially generated an Automated Quote for the same material.</p>
+
+        <h3>4. Scope of Services</h3>
+        <p>4.1. Pluma Translations provides language services including certified translations and other related services as made available through the Website or agreed in writing.</p>
+        <p>4.2. All Services are subject to availability, language pair availability, translator capacity, and suitability of the material submitted.</p>
+        <p>4.3. Pluma Translations reserves the right to refuse any project that: (a) falls outside our available expertise or capacity; (b) contains unlawful, abusive, or prohibited content; (c) is incomplete or illegible; or (d) cannot be responsibly completed to a professional standard.</p>
+
+        <h3>5. Client Responsibilities</h3>
+        <p>5.1. The Client represents and warrants that: (a) they have the legal right to submit the Original Document to Pluma Translations; (b) the information, selections, and files submitted are accurate and complete; (c) the Original Document is the correct and final version intended for translation; and (d) they have obtained any necessary consent to share personal or confidential information contained in the submitted materials.</p>
+        <p>5.2. The Client is responsible for checking that names, dates, places, numbers, and other factual details in the Original Document are correct.</p>
+        <p>5.3. Pluma Translations is not responsible for verifying the authenticity, legality, validity, or factual accuracy of the Original Document.</p>
+        <p>5.4. The Client must review all project details, including language pair, document type, delivery method, certification option, and turnaround time, before approving a Final Quote.</p>
+
+        <h3>6. Performance and Turnaround Times</h3>
+        <p>6.1. Any delivery date or turnaround time shown on the Website or in an Automated Quote is an estimate only unless expressly confirmed in writing.</p>
+        <p>6.2. Pluma Translations will use reasonable efforts to meet estimated delivery times, but time shall not be of the essence unless expressly agreed in writing.</p>
+        <p>6.3. Delivery timelines may be extended where: (a) the submitted material requires manual review; (b) the Client provides incomplete or corrected files after ordering; (c) the document is more complex than originally indicated; or (d) delays arise from force majeure, technical failure, or third-party providers.</p>
+
+        <h3>7. Certified Translations and Acceptance by Authorities</h3>
+        <p>7.1. Pluma Translations aims to provide accurate and professionally prepared translations consistent with applicable professional standards.</p>
+        <p>7.2. However, acceptance of any translation, certification, notarization, or related document by any government body, court, school, employer, regulator, consulate, IRCC office, ICBC office, or other authority depends on that authority’s current rules and practices.</p>
+        <p>7.3. Unless expressly stated in writing, Pluma Translations does not guarantee acceptance of a translation or certification by any specific authority.</p>
+        <p>7.4. The Client is solely responsible for confirming the current requirements of the receiving authority, including whether a certified translation, notarization, hard copy, original signature, affidavit, or additional supporting documents are required.</p>
+        <p>7.5. If a receiving authority rejects a translation for reasons unrelated to a proven translation error by Pluma Translations, Pluma Translations shall not be liable for any direct, indirect, incidental, or consequential loss arising from such rejection.</p>
+
+        <h3>8. Revisions and Change Requests</h3>
+        <p>8.1. The Client must notify Pluma Translations of any alleged translation error within 7 calendar days after delivery.</p>
+        <p>8.2. Where a genuine translation error attributable to Pluma Translations is identified within that period, Pluma Translations may, at its option: (a) correct the translation; (b) reissue the certification, if applicable; or (c) refund the fee paid for the affected portion of the Services.</p>
+        <p>8.3. Change requests that are not corrections of translation errors, including changes based on client preference, updated source text, or new instructions, may be charged separately.</p>
+        <p>8.4. For certified translations, Pluma Translations retains final professional discretion to reject any requested change that, in our judgment, would make the translation inaccurate or not a true and faithful rendering of the Original Document.</p>
+
+        <h3>9. Fees, Payment, Cancellation, and Refunds</h3>
+        <p>9.1. The Client shall pay the price set out in the Final Quote, together with any applicable taxes and additional agreed charges.</p>
+        <p>9.2. Unless otherwise agreed in writing, payment is due in full before work begins.</p>
+        <p>9.3. If an order is cancelled before work begins, Pluma Translations may cancel the order without charge, except for any non-refundable third-party costs already incurred.</p>
+        <p>9.4. If the Client cancels after work has started, Pluma Translations may charge for work already completed, time already committed, project setup, certification preparation, or any third-party costs already incurred.</p>
+        <p>9.5. Where an Automated Quote is revised after manual review and the Client declines the revised Final Quote before work begins, any payment already made shall be refunded less any non-refundable third-party fees or payment processing charges, if applicable and lawful.</p>
+        <p>9.6. No refund shall be owed merely because: (a) the Client no longer needs the translation; (b) the Client submitted the wrong file or incomplete file; (c) a receiving authority requests a different format or additional documents; or (d) the Client requests wording changes that the translator declines for accuracy reasons.</p>
+
+        <h3>10. Delivery</h3>
+        <p>10.1. Delivery may be made electronically, by download, by email, or by physical delivery, depending on the service purchased.</p>
+        <p>10.2. The Client is responsible for ensuring that the email address and delivery information provided are accurate.</p>
+        <p>10.3. Pluma Translations shall not be liable for delays, loss, or failed delivery caused by incorrect contact details, spam filtering, internet issues, courier issues, postal delays, customs issues, or events beyond our reasonable control.</p>
+        <p>10.4. Risk in physical documents or hard copies passes to the Client upon dispatch.</p>
+
+        <h3>11. Confidentiality and Privacy</h3>
+        <p>11.1. Pluma Translations will take reasonable steps to protect the confidentiality of Client documents and personal information.</p>
+        <p>11.2. The Client acknowledges that, in order to provide the Services, Pluma Translations may share documents and related information with employees, contractors, or professional translators on a need-to-know basis and subject to confidentiality obligations.</p>
+        <p>11.3. Personal information submitted to Pluma Translations shall be collected, used, stored, and disclosed in accordance with our Privacy Policy and applicable privacy laws in British Columbia and Canada.</p>
+        <p>11.4. While reasonable safeguards are used, no electronic transmission, cloud storage system, or internet-based platform can be guaranteed to be completely secure. To the maximum extent permitted by law, Pluma Translations disclaims liability for unauthorized access, interception, or data loss not caused by its wilful misconduct or gross negligence.</p>
+
+        <h3>12. Intellectual Property</h3>
+        <p>12.1. The Client retains ownership of the Original Document.</p>
+        <p>12.2. Subject to full payment, the Client receives a non-exclusive licence to use the translated deliverables for their intended lawful purposes.</p>
+        <p>12.3. Pluma Translations retains all rights in its templates, certifications, formatting methods, workflows, glossaries, internal processes, and any pre-existing materials used to provide the Services.</p>
+
+        <h3>13. Limitation of Liability</h3>
+        <p>13.1. To the maximum extent permitted by law, Pluma Translations shall not be liable for any indirect, incidental, special, punitive, or consequential damages, including loss of opportunity, loss of profits, loss of business, loss of goodwill, delay-related losses, or rejection by third parties.</p>
+        <p>13.2. Pluma Translations shall not be liable for any loss arising from: (a) inaccuracies, omissions, or illegibility in the Original Document; (b) incomplete or misleading information submitted by the Client; (c) authority-specific formatting or procedural requirements not disclosed to us in advance; (d) revisions requested after delivery; (e) technical errors in Automated Quotes; or (f) delays caused by third-party services or force majeure.</p>
+        <p>13.3. To the maximum extent permitted by law, the total aggregate liability of Pluma Translations arising out of or in connection with the Services or these Terms and Conditions shall not exceed the total amount actually paid by the Client for the specific Services giving rise to the claim.</p>
+        <p>13.4. Nothing in these Terms excludes liability that cannot lawfully be excluded, including liability for fraud or fraudulent misrepresentation, or for death or personal injury caused by negligence where such exclusion is prohibited by law.</p>
+
+        <h3>14. Force Majeure</h3>
+        <p>Pluma Translations shall not be liable for any failure or delay in performing its obligations where such failure or delay is caused by events beyond its reasonable control, including internet outages, platform failures, cyber incidents, illness, labour disruption, fire, flood, severe weather, utility interruption, government action, or other force majeure events.</p>
+
+        <h3>15. Changes to These Terms</h3>
+        <p>15.1. Pluma Translations may update these Terms and Conditions from time to time.</p>
+        <p>15.2. The version in effect at the time the Client places an order or accepts a Final Quote shall apply to that order, unless otherwise agreed in writing.</p>
+
+        <h3>16. Governing Law and Dispute Resolution</h3>
+        <p>16.1. These Terms and Conditions and any dispute arising out of or in connection with them shall be governed by the laws of the Province of British Columbia and the applicable federal laws of Canada.</p>
+        <p>16.2. The parties shall first attempt to resolve any dispute in good faith through written communication.</p>
+        <p>16.3. If the dispute cannot be resolved informally, the parties agree that the courts of British Columbia shall have exclusive jurisdiction, unless Pluma Translations elects, in its sole discretion, to refer the matter to mediation or arbitration.</p>
+
+        <h3>17. Contact</h3>
+        <p>Questions regarding these Terms and Conditions may be sent to:</p>
+        <p>Pluma Translations<br>Email: contact@plumatranslations.com<br>(+1) 604 423 4898</p>
+      </div>
+      <div class="tc-modal-footer">
+        <button type="button" class="btn btn-secondary" id="tcModalCloseFooterBtn">Close</button>
+        <button type="button" class="btn btn-primary" id="tcModalAcceptBtn">I have read and accept</button>
+      </div>
+    </div>
+  </div>
 
   <div class="page-footer">
     <a href="https://plumatranslations.com" target="_blank">plumatranslations.com</a>
@@ -208,8 +345,19 @@
 
   const payBtn              = document.getElementById('payBtn');
   const requestQuoteBtn     = document.getElementById('requestQuoteBtn');
+  const submitArea          = document.getElementById('submitArea');
   const paypalContainer     = document.getElementById('paypal-button-container');
   const statusEl            = document.getElementById('statusMessage');
+
+  const tcGate              = document.getElementById('tcGate');
+  const viewTcBtn           = document.getElementById('viewTcBtn');
+  const tcCheckbox          = document.getElementById('tcCheckbox');
+  const tcHelp              = document.getElementById('tcHelp');
+  const tcModal             = document.getElementById('tcModal');
+  const tcModalBackdrop     = document.getElementById('tcModalBackdrop');
+  const tcModalCloseBtn     = document.getElementById('tcModalCloseBtn');
+  const tcModalCloseFooterBtn = document.getElementById('tcModalCloseFooterBtn');
+  const tcModalAcceptBtn    = document.getElementById('tcModalAcceptBtn');
 
   // ====================================================================
   // State
@@ -226,6 +374,8 @@
     turnaround: 'standard',
     includeShipping: false,
     uploadedFileUrls: [],   // populated on submit
+    tcOpened: false,        // user has opened the T&C modal at least once
+    tcAccepted: false,      // user has ticked the acceptance checkbox
   };
 
   // ====================================================================
@@ -522,6 +672,42 @@
   });
 
   // ====================================================================
+  // Terms & Conditions modal + acceptance gate
+  // ====================================================================
+  function openTcModal() {
+    tcModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    state.tcOpened = true;
+    tcCheckbox.disabled = false;
+    if (tcHelp) {
+      tcHelp.textContent = 'Tick the box above to confirm you accept the Terms and Conditions.';
+    }
+  }
+  function closeTcModal() {
+    tcModal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+  viewTcBtn.addEventListener('click', openTcModal);
+  tcModalCloseBtn.addEventListener('click', closeTcModal);
+  tcModalCloseFooterBtn.addEventListener('click', closeTcModal);
+  tcModalBackdrop.addEventListener('click', closeTcModal);
+  tcModalAcceptBtn.addEventListener('click', () => {
+    tcCheckbox.checked = true;
+    state.tcAccepted = true;
+    closeTcModal();
+    render();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !tcModal.classList.contains('hidden')) {
+      closeTcModal();
+    }
+  });
+  tcCheckbox.addEventListener('change', () => {
+    state.tcAccepted = tcCheckbox.checked;
+    render();
+  });
+
+  // ====================================================================
   // Render — switches between instant quote and manual quote views
   // ====================================================================
   function render() {
@@ -542,8 +728,10 @@
       ? '24 business hours'
       : expDays + ' business days';
 
+    let activeMode = null;
     if (decision.mode === 'instant' && state.pages > 0) {
       // --- Instant quote ---
+      activeMode = 'instant';
       instantBlock.classList.remove('hidden');
       manualBlock.classList.add('hidden');
 
@@ -566,6 +754,7 @@
 
     } else if (decision.mode === 'manual') {
       // --- Manual quote ---
+      activeMode = 'manual';
       instantBlock.classList.add('hidden');
       manualBlock.classList.remove('hidden');
       manualNotice.textContent = PlumaQuoter.manualQuoteReasonText(decision.reason);
@@ -574,6 +763,19 @@
       // Not enough data yet — show neither output block
       instantBlock.classList.add('hidden');
       manualBlock.classList.add('hidden');
+    }
+
+    // --- T&C gate + submit area ---
+    if (activeMode) {
+      tcGate.classList.remove('hidden');
+      submitArea.classList.remove('hidden');
+      payBtn.classList.toggle('hidden', activeMode !== 'instant');
+      requestQuoteBtn.classList.toggle('hidden', activeMode !== 'manual');
+      payBtn.disabled = !state.tcAccepted;
+      requestQuoteBtn.disabled = !state.tcAccepted;
+    } else {
+      tcGate.classList.add('hidden');
+      submitArea.classList.add('hidden');
     }
   }
 
@@ -682,6 +884,11 @@
       return;
     }
 
+    if (!state.tcAccepted) {
+      showStatus('Please open and accept the Terms and Conditions before continuing.', 'error');
+      return;
+    }
+
     if (decision.mode === 'manual') {
       await submitManualQuote(name, email, decision.reason);
       return;
@@ -721,6 +928,8 @@
       fd.append('turnaround', state.turnaround || '');
       fd.append('notes', notesInput.value.trim() || '');
       fd.append('reason', reason || '');
+      fd.append('tcAccepted', state.tcAccepted ? 'true' : 'false');
+      fd.append('tcVersion', '2026-04-13');
       state.files.forEach(e => fd.append('files', e.file, e.file.name));
 
       const res = await fetch(API_BASE + '/request-quote', {
@@ -781,6 +990,8 @@
         deliveryDate: PlumaQuoter.formatDateISO(
           PlumaQuoter.calculateDeliveryDate(state.turnaround, state.pages)),
         fileUrls: state.uploadedFileUrls,
+        tcAccepted: state.tcAccepted,
+        tcVersion: '2026-04-13',
       });
 
       paypalButtons = paypal.Buttons({
