@@ -305,6 +305,11 @@
   // Configuration
   // ====================================================================
   const PAYPAL_CLIENT_ID = 'AQqUeGVb0P_YOO3CoyVIAILCImgF1wqMZPizACVZWjk3_9Q1zO-fdk75ep3IlZk6RqbeDIkY3QL8gNLs';
+  // Sandbox client ID — used when the page URL contains ?test (for safe end-to-end
+  // testing without real charges). Backend mirrors this via PayPal_TestClientId env var.
+  const PAYPAL_TEST_CLIENT_ID = 'AQak41RvRV-ChOa5q6-NrnETdeGh4h0lIn3uooFABJ6fAKWnWdjjZMVeJIgugwOPqy-rJCztyB7sfVEN';
+  const IS_TEST_MODE = new URLSearchParams(location.search).has('test');
+  const ACTIVE_PAYPAL_CLIENT_ID = IS_TEST_MODE ? PAYPAL_TEST_CLIENT_ID : PAYPAL_CLIENT_ID;
   const API_BASE = 'https://plugin.supertranslations.com/api/plumaquote';
 
   // Embed mode
@@ -820,7 +825,7 @@
     return new Promise((resolve, reject) => {
       if (paypalLoaded) return resolve();
       const script = document.createElement('script');
-      script.src = 'https://www.paypal.com/sdk/js?client-id=' + PAYPAL_CLIENT_ID + '&currency=CAD';
+      script.src = 'https://www.paypal.com/sdk/js?client-id=' + ACTIVE_PAYPAL_CLIENT_ID + '&currency=CAD';
       script.onload = () => { paypalLoaded = true; resolve(); };
       script.onerror = () => reject(new Error('Failed to load PayPal SDK'));
       document.head.appendChild(script);
@@ -992,6 +997,7 @@
         fileUrls: state.uploadedFileUrls,
         tcAccepted: state.tcAccepted,
         tcVersion: '2026-04-13',
+        test: IS_TEST_MODE,
       });
 
       paypalButtons = paypal.Buttons({
