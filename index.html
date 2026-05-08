@@ -304,6 +304,10 @@
   // ====================================================================
   // Configuration
   // ====================================================================
+  // Must match backend caps in PlumaQuoteController.
+  const MAX_FILE_BYTES = 20 * 1024 * 1024;   // 20MB per file
+  const MAX_TOTAL_BYTES = 60 * 1024 * 1024;  // 60MB total request
+
   const PAYPAL_CLIENT_ID = 'AQqUeGVb0P_YOO3CoyVIAILCImgF1wqMZPizACVZWjk3_9Q1zO-fdk75ep3IlZk6RqbeDIkY3QL8gNLs';
   // Sandbox client ID — used when the page URL contains ?test (for safe end-to-end
   // testing without real charges). Backend mirrors this via PayPal_TestClientId env var.
@@ -378,7 +382,6 @@
     pages: 0,
     turnaround: 'standard',
     includeShipping: false,
-    uploadedFileUrls: [],   // populated on submit
     tcOpened: false,        // user has opened the T&C modal at least once
     tcAccepted: false,      // user has ticked the acceptance checkbox
   };
@@ -612,6 +615,7 @@
     if (files.length === 0) {
       state.pages = 0;
       state.pageCountKnown = null;
+      state.filesTooLarge = false;
       pagesInput.value = '';
       pagesNote.textContent = '';
       render();
@@ -629,8 +633,28 @@
       fileListEl.appendChild(row);
     });
 
-    // Count in parallel
+    // Pre-flag oversized files so we don't bother counting pages on them.
+    state.files.forEach(entry => {
+      if (entry.file.size > MAX_FILE_BYTES) {
+        entry.tooLarge = true;
+        entry.ok = false;
+      }
+    });
+    const totalBytes = state.files.reduce((s, e) => s + e.file.size, 0);
+    const totalTooLarge = totalBytes > MAX_TOTAL_BYTES;
+
+    // Count in parallel (skip oversized files — we won't accept them anyway)
     await Promise.all(state.files.map(async (entry, idx) => {
+      if (entry.tooLarge) {
+        entry.pages = null;
+        const cell = document.getElementById('fp-' + idx);
+        if (cell) {
+          const mb = (entry.file.size / 1024 / 1024).toFixed(1);
+          cell.textContent = `too large (${mb} MB, max 20 MB)`;
+          cell.classList.add('file-pages-error');
+        }
+        return;
+      }
       const n = await countPagesForFile(entry.file);
       entry.pages = (typeof n === 'number' && n > 0) ? n : null;
       entry.ok = entry.pages !== null;
@@ -643,13 +667,24 @@
       }
     }));
 
-    const allOk = state.files.every(e => e.ok);
+    const anyTooLarge = state.files.some(e => e.tooLarge) || totalTooLarge;
+    const allOk = !anyTooLarge && state.files.every(e => e.ok);
     const total = state.files.reduce((sum, e) => sum + (e.pages || 0), 0);
 
-    state.pageCountKnown = allOk;
+    state.filesTooLarge = anyTooLarge;
+    state.pageCountKnown = allOk ? true : (anyTooLarge ? null : false);
     state.pages = allOk ? total : 0;
 
-    if (allOk) {
+    if (anyTooLarge) {
+      pagesInput.value = '';
+      const lead = totalTooLarge
+        ? `Your files total ${(totalBytes / 1024 / 1024).toFixed(1)} MB — please keep the combined size under 60 MB.`
+        : 'Some of your files are over the 20 MB per-file limit.';
+      pagesNote.innerHTML = lead +
+        ' If you can\'t reduce them, please email the document(s) directly to ' +
+        '<a href="mailto:contact@plumatranslations.com">contact@plumatranslations.com</a> ' +
+        'and we\'ll quote you by reply.';
+    } else if (allOk) {
       pagesInput.value = total;
       pagesNote.textContent = 'Auto-detected from your file(s).';
     } else {
@@ -716,13 +751,15 @@
   // Render — switches between instant quote and manual quote views
   // ====================================================================
   function render() {
-    const decision = PlumaQuoter.getQuoteMode({
-      serviceId: state.serviceId,
-      fromLang: state.fromLang,
-      toLang: state.toLang,
-      pageCountKnown: state.pageCountKnown,
-      pages: state.pages,
-    });
+    const decision = state.filesTooLarge
+      ? { mode: null, reason: 'too-large' }
+      : PlumaQuoter.getQuoteMode({
+          serviceId: state.serviceId,
+          fromLang: state.fromLang,
+          toLang: state.toLang,
+          pageCountKnown: state.pageCountKnown,
+          pages: state.pages,
+        });
 
     // Update Standard/Express delivery labels based on current page count
     const pagesForEst = Math.max(1, state.pages || 1);
@@ -842,25 +879,9 @@
   }
 
   // ====================================================================
-  // File upload helper (server-side storage)
+  // File upload helper — files travel with /capture-order (multipart)
+  // so they only leave the browser once payment is confirmed.
   // ====================================================================
-  async function uploadSingle(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    const res = await fetch(API_BASE + '/upload-file', { method: 'POST', body: formData });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: 'Upload failed' }));
-      throw new Error(err.message || 'File upload failed');
-    }
-    const data = await res.json();
-    return data.fileUrl || '';
-  }
-
-  async function uploadAllFiles() {
-    if (!state.files.length) return [];
-    const urls = await Promise.all(state.files.map(e => uploadSingle(e.file)));
-    return urls.filter(Boolean);
-  }
 
   // ====================================================================
   // Form submission
@@ -960,18 +981,6 @@
   async function submitInstantOrder(name, email) {
     payBtn.style.display = 'none';
 
-    if (state.files.length > 0) {
-      showStatus('Uploading document…', 'loading');
-      try {
-        state.uploadedFileUrls = await uploadAllFiles();
-      } catch (err) {
-        console.error('Upload error:', err);
-        showStatus('File upload failed. Please try again.', 'error');
-        payBtn.style.display = '';
-        return;
-      }
-    }
-
     showStatus('Loading payment options…', 'loading');
 
     try {
@@ -994,7 +1003,6 @@
         total: PlumaQuoter.calculateTotal(state.pages, state.turnaround, state.serviceId, state.includeShipping),
         deliveryDate: PlumaQuoter.formatDateISO(
           PlumaQuoter.calculateDeliveryDate(state.turnaround, state.pages)),
-        fileUrls: state.uploadedFileUrls,
         tcAccepted: state.tcAccepted,
         tcVersion: '2026-04-13',
         test: IS_TEST_MODE,
@@ -1020,10 +1028,19 @@
         onApprove: async function (data) {
           showStatus('Processing payment…', 'loading');
           try {
+            // Multipart so the document(s) ride along with the capture call
+            // and land in the business notification email atomically.
+            const fd = new FormData();
+            const payload = orderPayload();
+            fd.append('orderId', data.orderID);
+            for (const [k, v] of Object.entries(payload)) {
+              fd.append(k, typeof v === 'boolean' ? String(v) : (v ?? ''));
+            }
+            state.files.forEach(e => fd.append('files', e.file, e.file.name));
+
             const res = await fetch(API_BASE + '/capture-order', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(Object.assign({ orderId: data.orderID }, orderPayload())),
+              body: fd,
             });
             if (!res.ok) {
               const err = await res.json().catch(() => ({ message: 'Capture failed' }));
